@@ -1,0 +1,73 @@
+.notes-page {
+  height: calc(100vh - 64px);
+  display: grid;
+  grid-template-columns: 280px minmax(420px, 1fr) 300px;
+  background: #fff;
+}
+.notes-list-panel { min-width: 0; border-right: 1px solid #e4e7eb; background: #f8f9fa; }
+.notes-list-heading { height: 78px; display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 10px; }
+.notes-list-heading h1 { margin: 0; font-size: 22px; letter-spacing: -.6px; }
+.note-new-icon { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid #dfe3e8; border-radius: 7px; color: #155eef; background: #fff; }
+.notes-search { height: 34px; display: flex; align-items: center; gap: 7px; margin: 0 12px 8px; padding: 0 10px; border: 1px solid #e0e4e8; border-radius: 7px; color: #9098a2; background: #fff; }
+.notes-search input { width: 100%; border: 0; outline: 0; background: transparent; font-size: 11px; }
+.notes-count { padding: 2px 16px 8px; color: #949ca6; font-size: 9px; }
+.notes-list { height: calc(100% - 122px); overflow: auto; padding: 0 7px 12px; }
+.note-row { width: 100%; display: block; padding: 11px 10px; border: 0; border-bottom: 1px solid #e9ecef; border-radius: 6px; color: #313842; background: transparent; text-align: left; }
+.note-row:hover { background: #f0f2f5; }
+.note-row.active { background: #e8efff; }
+.note-row-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.note-row-title strong { overflow: hidden; font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
+.note-row-title svg { flex: 0 0 auto; color: #155eef; }
+.note-row p { margin: 5px 0 6px; overflow: hidden; color: #707985; font-size: 9.5px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.note-row > span { color: #9aa2ac; font-size: 8.5px; }
+.note-editor { min-width: 0; display: flex; flex-direction: column; padding: 0 42px; background: #fff; }
+.note-toolbar { height: 58px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eef0f3; }
+.note-toolbar > span { color: #a0a7b0; font-size: 9px; }
+.note-toolbar > div { display: flex; gap: 3px; }
+.note-toolbar button { width: 31px; height: 31px; display: grid; place-items: center; border: 0; border-radius: 6px; color: #7f8893; background: transparent; }
+.note-toolbar button:hover, .note-toolbar button.active { color: #155eef; background: #eef3ff; }
+.note-toolbar button.toolbar-action { width: auto; padding: 0 9px; display: flex; gap: 5px; color: #155eef; background: #eef3ff; font-size: 9px; }
+.note-title-input { padding: 34px 0 15px; border: 0; outline: 0; color: #191e24; background: transparent; font-size: 26px; font-weight: 700; letter-spacing: -.7px; }
+.note-body-input { width: 100%; flex: 1; resize: none; padding: 0 0 30px; border: 0; outline: 0; color: #3d454f; background: transparent; font-size: 14px; line-height: 1.9; }
+.note-status { height: 38px; display: flex; justify-content: space-between; border-top: 1px solid #eef0f3; color: #a0a7af; font-size: 8.5px; line-height: 38px; }
+.compact-insight { display: none; padding: 12px; margin: 0 0 10px; border: 1px solid #dce5f8; border-radius: 8px; background: #f7f9fe; }
+.compact-insight span, .compact-insight strong { display: block; }.compact-insight span { color: #7e8a99; font-size: 8px; }.compact-insight strong { margin-top: 4px; font-size: 11px; }.compact-insight p { margin: 5px 0 0; color: #5c6877; font-size: 9px; line-height: 1.5; }.compact-insight button { margin-top: 9px; padding: 7px 9px; border: 1px solid #cbd8f5; border-radius: 6px; color: #155eef; background: #fff; font-size: 9px; }
+.note-insight { border-left: 1px solid #e4e7eb; background: #fbfcfd; }
+.local-analysis { padding: 3px 6px; border-radius: 4px; color: #627083; background: #edf0f3; font-size: 8px !important; }
+.insight-hero { display: flex; align-items: center; gap: 11px; padding: 18px 16px; border-bottom: 1px solid #eef0f3; }
+.insight-hero small, .insight-hero strong { display: block; }
+.insight-hero small { margin-bottom: 4px; color: #9098a2; font-size: 8px; }
+.insight-hero strong { font-size: 12px; }
+.insight-block { padding: 17px 16px; border-bottom: 1px solid #eef0f3; }
+.insight-block > span { display: block; margin-bottom: 8px; color: #8e97a2; font-size: 9px; }
+.insight-block p { margin: 0; color: #56606c; font-size: 10px; line-height: 1.7; }
+.insight-block ul { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+.insight-block li { display: flex; align-items: flex-start; gap: 7px; color: #4d5864; font-size: 10px; line-height: 1.4; }
+.insight-block li svg { flex: 0 0 auto; color: #35a16b; }
+.send-to-queue { width: calc(100% - 32px); height: 36px; display: flex; align-items: center; justify-content: center; gap: 7px; margin: 16px; border: 0; border-radius: 7px; color: #fff; background: #155eef; font-size: 10px; font-weight: 650; }
+.analysis-disclaimer { margin: 0 16px; color: #9aa2ac; font-size: 8.5px; line-height: 1.55; }
+.model-connect { padding: 15px 16px 0; }
+.model-connect label { display: block; margin-bottom: 6px; color: #7d8793; font-size: 9px; }
+.model-connect input { width: 100%; height: 34px; padding: 0 9px; border: 1px solid #dce1e7; border-radius: 6px; outline: none; color: #2f3740; background: #fff; font: 10px var(--font-geist-mono); }
+.model-connect input:focus { border-color: #87aafa; box-shadow: 0 0 0 3px #eef3ff; }
+.model-connect button { width: 100%; height: 34px; margin-top: 7px; border: 1px solid #cbd8f5; border-radius: 6px; color: #155eef; background: #f4f7ff; font-size: 10px; font-weight: 650; }
+.model-connect button:disabled { opacity: .6; cursor: wait; }
+.model-connect p { margin: 7px 0 0; color: #b42318; font-size: 8.5px; line-height: 1.4; }
+@media (max-width: 1050px) {
+  .notes-page { grid-template-columns: 250px 1fr; }
+  .note-insight { display: none; }
+  .compact-insight { display: block; }
+}
+@media (max-width: 760px) {
+  .notes-page { height: calc(100vh - 120px); grid-template-columns: 150px 1fr; }
+  .notes-list-heading { height: 58px; padding: 10px; }
+  .notes-list-heading h1 { font-size: 17px; }
+  .notes-list-heading .eyebrow, .notes-count { display: none; }
+  .notes-search { margin: 0 7px 7px; }
+  .notes-list { height: calc(100% - 99px); padding: 0 4px; }
+  .note-row { padding: 10px 7px; }
+  .note-row p { display: none; }
+  .note-editor { padding: 0 16px; }
+  .note-title-input { padding-top: 24px; font-size: 20px; }
+  .note-body-input { font-size: 13px; line-height: 1.75; }
+}

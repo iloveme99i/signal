@@ -1,0 +1,35 @@
+/* Signal uses a restrained operations UI: hierarchy comes from spacing and type, not cards. */
+.workspace { background: #f7f7f6; }
+.topbar { height: 58px; padding: 0 24px; background: rgba(250,250,249,.97); border-color: #dededb; }
+.page-content { max-width: 1360px; padding: 30px 34px 48px; }
+.page-heading { margin-bottom: 20px; }
+.page-heading h1 { font-size: 22px; letter-spacing: -.45px; }
+.page-heading p:not(.eyebrow) { margin-top: 5px; color: #84847f; font-size: 11px; }
+.eyebrow { margin-bottom: 5px; color: #999993; letter-spacing: .14em; }
+.content-grid { grid-template-columns: minmax(0,1fr) 390px; gap: 0; border: 1px solid #dcdcd8; background: #fff; }
+.queue-panel,.detail-panel { border: 0; border-radius: 0; box-shadow: none; }
+.queue-panel { border-right: 1px solid #dcdcd8; }
+.panel-header { min-height: 52px; padding: 0 18px; border-color: #e5e5e2; }
+.panel-header h2 { font-size: 12px; }
+.filter-row { gap: 12px; }
+.filter { height: auto; padding: 4px 0; border-radius: 0; color: #8b8b86; font-size: 9px; }
+.filter:hover,.filter.active { color: #171714; background: transparent; box-shadow: inset 0 -1px #171714; }
+.queue-list { padding: 0; }
+.queue-item { display: block; padding: 15px 18px; border-color: #ecece9; }
+.queue-item:hover { background: #fafaf8; }
+.queue-item.selected { background: #f1f3f6; box-shadow: inset 2px 0 #315d91; }
+.source-icon { width: 29px; height: 29px; border-radius: 5px; color: #69717a !important; background: #eff0ef !important; }
+.item-topline { margin-bottom: 6px; color: #92928c; }.item-topline time { margin-left: auto; }
+.priority { padding: 0; border-radius: 0; background: transparent !important; }
+.priority.red { color: #9d3b32; }.priority.blue,.priority.violet { color: #416382; }.priority.gray { color: #73736e; }
+.item-body h3 { font-size: 12px; }.item-body>p { margin: 5px 0 0; color: #70706b; line-height: 1.45; }.item-footer { display:none; }
+.detail-panel { position: sticky; top: 76px; min-height: 560px; background: #fbfbfa; }
+.detail-heading { height: 52px; padding: 0 18px; border-color: #e5e5e2; }
+.detail-heading span { font-size: 11px; }
+.detail-document { min-height: 560px; display: flex; flex-direction: column; }.document-header { padding: 24px 22px 22px; border-bottom: 1px solid #e7e7e3; }.document-meta { display:flex; flex-wrap:wrap; gap:7px; color:#8d8d87; font-size:9px; }.document-meta span+span:before { content:"·"; margin-right:7px; }.document-header h2 { margin: 11px 0 0; font-size: 17px; line-height:1.45; letter-spacing:-.25px; }.open-original { display:flex; align-items:center; gap:5px; margin-top:14px; padding:6px 0; border:0; color:#315675; background:transparent; font-size:9px; }.document-body { flex:1; padding: 2px 22px 24px; }.document-body section { padding: 18px 0; border-bottom: 1px solid #e8e8e5; }.document-body section:last-child { border-bottom:0; }.document-body h3 { margin:0 0 9px; color:#92928d; font-size:9px; font-weight:600; letter-spacing:.04em; }.document-body p { margin:0; color:#4f4f4a; font-size:11px; line-height:1.75; }.document-note p { color:#73736d; }.document-actions { position:sticky; bottom:0; display:flex; gap:5px; padding:12px 14px; border-top:1px solid #dededb; background:#f7f7f5; }.document-actions button { min-height:32px; display:flex; align-items:center; justify-content:center; gap:5px; padding:0 10px; border:1px solid #d3d3cf; border-radius:3px; color:#50504b; background:#fff; font-size:9px; }.document-actions .complete { color:#fff; border-color:#244f7d; background:#244f7d; }.document-actions .delete { margin-left:auto; color:#8e3d36; }
+.progress-ring,.command-strip,.confidence,.reason-box { display: none; }
+.add-button { border-radius: 4px; box-shadow: none; background: #244f7d; }
+.icon-button,.secondary-button { border-radius: 4px; }
+.add-modal { border-radius: 5px; box-shadow: 0 18px 54px rgba(0,0,0,.18); }
+.modal-note { color: #626864; background: #f2f3f1; }
+@media(max-width:1050px){.content-grid{grid-template-columns:minmax(0,1fr) 340px}.detail-panel{display:block;position:relative;top:auto}}
