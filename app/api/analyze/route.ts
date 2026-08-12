@@ -16,9 +16,9 @@ export async function POST(request: Request) {
         temperature: 0.2,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: `你是 Signal 的信息识别引擎。任务不是总结整份材料，也不是给建议，而是识别其中每一条独立且有用的信息，忠实摘取并分类。一份材料通常应产生多条记录。去掉广告、寒暄、重复和空话，不得编造。
+          { role: "system", content: `你是 Signal 的信息摘取与分类引擎。只做识别、摘取、分类，不做分析、解释、评价、建议或扩写。一份材料可以产生多条记录。尽量保留用户原话，只允许删除重复、口头语、广告和无关内容；不得改变原意，不得补充原文没有的信息。
 只输出 JSON：{"items":[{"category":"deadline|task|job|knowledge|resource|project|contact|personal","title":"可检索的短标题","content":"完整而独立的信息","fields":{"字段名":"字段值"},"sourceQuote":"支持这条信息的最短原文","confidence":"high|medium|low","needsConfirmation":["无法从原文确定的字段名"],"confirmed":false}]}。
-分类含义：deadline=日期截止日程；task=明确待办行动；job=公司岗位要求；knowledge=知识方法观点案例；resource=工具链接邮箱代码等资源；project=项目想法；contact=人物联系方式；personal=个人记录。相同原文可以同时产生不同类别的记录，例如岗位截图同时产生岗位、截止、投递待办和联系方式。相对日期、老地方、他等模糊指代必须放进 needsConfirmation。` },
+分类含义：deadline=日期截止日程；task=明确待办行动；job=公司岗位要求；knowledge=知识方法观点案例；resource=工具链接邮箱代码等资源；project=项目想法；contact=人物联系方式；personal=个人记录。只有原文确实包含多种独立信息时才拆分，不能为了凑数量重复输出。相对日期、老地方、他等模糊指代放进 needsConfirmation，不要猜。` },
           { role: "user", content: `标题：${body.title || "无标题"}\n\n正文：\n${body.content}` },
         ],
       }),
