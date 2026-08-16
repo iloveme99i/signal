@@ -29,8 +29,14 @@ test("Signal provides a user-created nested classification tree and working item
   for (const label of ["收藏", "置顶", "看板", "备忘录", "回收站"]) {
     assert.match(workspace, new RegExp(label));
   }
-  assert.match(workspace, /const sampleCategories: CustomCategory\[\] = \[\]/);
+  assert.match(workspace, /产品实习/);
+  assert.match(workspace, /AI 与开发/);
+  assert.match(workspace, /软件与网站/);
+  assert.match(workspace, /项目想法/);
   assert.match(workspace, /新建分类/);
+  assert.match(workspace, /新建子页面/);
+  assert.match(workspace, /category-page-title/);
+  assert.match(workspace, /page-block/);
   assert.match(workspace, /addCategory/);
   assert.match(workspace, /finishCategoryEdit/);
   assert.match(workspace, /deleteCategory/);
