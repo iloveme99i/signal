@@ -26,9 +26,11 @@ test("Signal first-round MVP keeps the complete capture and source flow", async 
 
 test("Signal provides a user-created nested classification tree and working item actions", async () => {
   const workspace = await readFile(new URL("app/signal-workspace.tsx", root), "utf8");
-  for (const label of ["求职", "岗位", "产品实习", "学习", "AI", "项目", "收藏", "置顶", "看板", "备忘录", "回收站"]) {
+  for (const label of ["收藏", "置顶", "看板", "备忘录", "回收站"]) {
     assert.match(workspace, new RegExp(label));
   }
+  assert.match(workspace, /const sampleCategories: CustomCategory\[\] = \[\]/);
+  assert.match(workspace, /新建分类/);
   assert.match(workspace, /addCategory/);
   assert.match(workspace, /finishCategoryEdit/);
   assert.match(workspace, /deleteCategory/);
