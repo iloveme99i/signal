@@ -112,20 +112,9 @@ type View =
   | "notes"
   | "trash";
 type QuickNavId =
-  | "inbox"
-  | "recent"
-  | "favorites"
-  | "pinned"
-  | "board"
-  | "notes";
+  "inbox" | "recent" | "favorites" | "pinned" | "board" | "notes";
 type CategoryIcon =
-  | "file"
-  | "folder"
-  | "briefcase"
-  | "learning"
-  | "tools"
-  | "idea"
-  | "sparkles";
+  "file" | "folder" | "briefcase" | "learning" | "tools" | "idea" | "sparkles";
 type LibraryMode = "overview" | "list" | "board";
 type SortMode = "manual" | "recent" | "title";
 type CategoryDrop = {
@@ -431,6 +420,7 @@ export default function SignalWorkspace() {
     [view, setView] = useState<View>("all"),
     [selectedCategory, setSelectedCategory] = useState("all"),
     [selectedId, setSelectedId] = useState(""),
+    [selectedCategoryDetailId, setSelectedCategoryDetailId] = useState(""),
     [rightOpen, setRightOpen] = useState(false),
     [query, setQuery] = useState("");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({}),
@@ -601,8 +591,8 @@ export default function SignalWorkspace() {
   useEffect(() => {
     if (!newCategoryFocusId) return;
     const frame = requestAnimationFrame(() => {
-      const input = document.querySelector<HTMLInputElement>(
-        ".category-page-title",
+      const input = document.querySelector<HTMLTextAreaElement>(
+        ".category-detail-title",
       );
       input?.focus();
       input?.select();
@@ -614,6 +604,9 @@ export default function SignalWorkspace() {
   const selected = items.find((item) => item.id === selectedId),
     selectedSource = sources.find((source) => source.id === selected?.sourceId),
     activeCategory = custom.find((node) => node.id === selectedCategory),
+    selectedCategoryDetail = custom.find(
+      (node) => node.id === selectedCategoryDetailId,
+    ),
     menuCategory = custom.find((node) => node.id === categoryMenu?.id);
   const descendants = (id: string): string[] => {
     const direct = custom
@@ -857,6 +850,7 @@ export default function SignalWorkspace() {
     );
     setSources((current) => [...newSources, ...current]);
     setItems((current) => [...newItems, ...current]);
+    setSelectedCategoryDetailId("");
     setSelectedId(newItems[0]?.id || "");
     setView("all");
     setSelectedCategory("all");
@@ -879,8 +873,11 @@ export default function SignalWorkspace() {
     setCollapsed((current) => ({ ...current, [parentId]: false }));
     setEditingCategoryId("");
     setNewCategoryFocusId(id);
-    setSelectedCategory(id);
+    setSelectedId("");
+    setSelectedCategoryDetailId(id);
+    setSelectedCategory(parentId === "root" ? id : parentId);
     setView("all");
+    setRightOpen(true);
   };
   const finishCategoryEdit = () => {
     if (!editingCategoryId) return;
@@ -967,6 +964,10 @@ export default function SignalWorkspace() {
       ),
     );
     if (ids.has(selectedCategory)) setSelectedCategory("all");
+    if (ids.has(selectedCategoryDetailId)) {
+      setSelectedCategoryDetailId("");
+      setRightOpen(false);
+    }
     setCategoryMenu(null);
   };
   const duplicateCategory = (id: string) => {
@@ -1172,10 +1173,11 @@ export default function SignalWorkspace() {
                 onClick={() => {
                   setSelectedCategory(node.id);
                   setView("all");
+                  setSelectedCategoryDetailId("");
                 }}
               >
                 <CategoryGlyph category={node} />
-                <span>{node.label || "未命名"}</span>
+                <span className="tree-label">{node.label || "未命名"}</span>
                 <em>
                   {
                     items.filter(
@@ -1520,137 +1522,99 @@ export default function SignalWorkspace() {
           </div>
         </header>
         {view === "all" && activeCategory ? (
-          <div className="category-canvas">
-            <div className="page-breadcrumb">
-              {categoryPath(activeCategory.id).map((part, index, path) => (
-                <span key={part.id}>
-                  {part.label}
-                  {index < path.length - 1 ? " / " : ""}
-                </span>
-              ))}
-            </div>
-            <div className="category-page-heading">
-              <button
-                className="category-page-icon"
-                type="button"
-                style={{
-                  background: `${activeCategory.color || categoryColors[0]}18`,
-                }}
-                onClick={(event) => {
-                  const rect = event.currentTarget.getBoundingClientRect();
-                  setCategoryMenu({
-                    id: activeCategory.id,
-                    x: rect.left,
-                    y: rect.bottom,
-                  });
-                }}
-                aria-label="修改分类图标和颜色"
-              >
-                <CategoryGlyph category={activeCategory} />
-              </button>
-              <input
-                className="category-page-title"
-                autoFocus={newCategoryFocusId === activeCategory.id}
-                value={activeCategory.label}
-                onChange={(event) =>
-                  patchCategory(activeCategory.id, {
-                    label: event.target.value,
-                  })
-                }
-                placeholder="未命名"
-              />
-            </div>
-            <div className="page-blocks">
-              {(activeCategory.blocks || []).map((block) => (
-                <div
-                  className="page-block"
-                  style={{ paddingLeft: block.depth * 20 }}
-                  key={block.id}
+          <section className="category-browser">
+            <header className="category-browser-heading">
+              <div>
+                <button
+                  className="category-browser-icon"
+                  type="button"
+                  style={{
+                    background: `${activeCategory.color || categoryColors[0]}14`,
+                  }}
+                  onClick={() => {
+                    setSelectedId("");
+                    setSelectedCategoryDetailId(activeCategory.id);
+                    setRightOpen(true);
+                  }}
+                  aria-label={`编辑${activeCategory.label}`}
                 >
-                  <GripVertical />
-                  {block.type === "toggle" ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        patchPageBlock(activeCategory.id, block.id, {
-                          open: !block.open,
-                        })
-                      }
-                    >
-                      {block.open ? <ChevronDown /> : <ChevronRight />}
-                    </button>
-                  ) : null}
-                  <textarea
-                    rows={1}
-                    value={block.text}
-                    onChange={(event) => {
-                      const becomesToggle = event.target.value === "/toggle";
-                      patchPageBlock(activeCategory.id, block.id, {
-                        text: becomesToggle ? "" : event.target.value,
-                        type: becomesToggle ? "toggle" : block.type,
-                        open: becomesToggle ? true : block.open,
-                      });
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Backspace" && !block.text) {
-                        event.preventDefault();
-                        removePageBlock(activeCategory.id, block.id);
-                      }
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        addPageBlock(activeCategory.id, block.id);
-                      }
-                      if (event.key === "Tab") {
-                        event.preventDefault();
-                        patchPageBlock(activeCategory.id, block.id, {
-                          depth: Math.max(
-                            0,
-                            block.depth + (event.shiftKey ? -1 : 1),
-                          ),
-                        });
-                      }
-                    }}
-                    placeholder="写点什么，Enter 新建区块，Tab 缩进…"
-                  />
+                  <CategoryGlyph category={activeCategory} />
+                </button>
+                <div>
+                  <span className="category-browser-path">
+                    {categoryPath(activeCategory.id)
+                      .map((part) => part.label)
+                      .join(" / ")}
+                  </span>
+                  <p>
+                    {activeCategory.blocks?.find((block) => block.text)?.text ||
+                      "点击右侧详情，为这个分类补充说明。"}
+                  </p>
                 </div>
-              ))}
-              {!(activeCategory.blocks || []).length ? (
-                <button
-                  className="add-first-block"
-                  type="button"
-                  onClick={() => addPageBlock(activeCategory.id)}
-                >
-                  写点什么…
-                </button>
-              ) : null}
-            </div>
-            <section className="subpages">
-              <header>
-                <span>子页面</span>
-                <button
-                  type="button"
-                  onClick={() => addCategory(activeCategory.id)}
-                >
-                  <Plus />
-                  新建子页面
-                </button>
-              </header>
-              {custom
-                .filter((node) => node.parentId === activeCategory.id)
-                .map((child) => (
-                  <button
-                    className="subpage-link"
-                    type="button"
-                    key={child.id}
-                    onClick={() => setSelectedCategory(child.id)}
-                  >
-                    <FileText />
-                    <span>{child.label}</span>
-                    <ChevronRight />
-                  </button>
-                ))}
-            </section>
-          </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => addCategory(activeCategory.id)}
+              >
+                <Plus />
+                新建子分类
+              </button>
+            </header>
+            {custom.some((node) => node.parentId === activeCategory.id) ? (
+              <div className="category-child-list">
+                <div className="category-section-label">
+                  <span>子分类</span>
+                  <span>
+                    {
+                      custom.filter(
+                        (node) => node.parentId === activeCategory.id,
+                      ).length
+                    }
+                  </span>
+                </div>
+                {custom
+                  .filter((node) => node.parentId === activeCategory.id)
+                  .map((child) => {
+                    const childCount = items.filter(
+                      (item) =>
+                        !item.trashed && categoryMatches(item, child.id),
+                    ).length;
+                    return (
+                      <button
+                        className={`category-child-row ${selectedCategoryDetailId === child.id ? "selected" : ""}`}
+                        type="button"
+                        key={child.id}
+                        onClick={() => {
+                          setSelectedId("");
+                          setSelectedCategoryDetailId(child.id);
+                          setRightOpen(true);
+                        }}
+                      >
+                        <span
+                          className="category-child-icon"
+                          style={{
+                            background: `${child.color || categoryColors[0]}12`,
+                          }}
+                        >
+                          <CategoryGlyph category={child} />
+                        </span>
+                        <span className="category-child-copy">
+                          <strong>{child.label || "未命名"}</strong>
+                          <small>
+                            {child.blocks?.find((block) => block.text)?.text ||
+                              "点击后在右侧写说明和内容"}
+                          </small>
+                        </span>
+                        <span className="category-child-count">
+                          {childCount} 条
+                        </span>
+                        <ChevronRight />
+                      </button>
+                    );
+                  })}
+              </div>
+            ) : null}
+          </section>
         ) : null}
         {view === "all" &&
         selectedCategory === "all" &&
@@ -1661,6 +1625,7 @@ export default function SignalWorkspace() {
             categories={custom}
             onOpenCategory={(id) => setSelectedCategory(id)}
             onOpenItem={(id) => {
+              setSelectedCategoryDetailId("");
               setSelectedId(id);
               setRightOpen(true);
             }}
@@ -1675,6 +1640,7 @@ export default function SignalWorkspace() {
             sources={sources}
             categories={custom}
             onOpen={(id) => {
+              setSelectedCategoryDetailId("");
               setSelectedId(id);
               setRightOpen(true);
             }}
@@ -1752,6 +1718,7 @@ export default function SignalWorkspace() {
                       if (draggedId) reorderItems(draggedId, item.id);
                     }}
                     onClick={() => {
+                      setSelectedCategoryDetailId("");
                       setSelectedId(item.id);
                       setRightOpen(true);
                     }}
@@ -1813,8 +1780,197 @@ export default function SignalWorkspace() {
           </div>
         )}
       </section>
-      <aside className={`wk-detail ${rightOpen && selected ? "open" : ""}`}>
-        {selected ? (
+      <aside
+        className={`wk-detail ${rightOpen && (selected || selectedCategoryDetail) ? "open" : ""}`}
+      >
+        {selectedCategoryDetail ? (
+          <>
+            <header>
+              <button
+                type="button"
+                onClick={() => setRightOpen(false)}
+                aria-label="关闭分类详情"
+              >
+                <X />
+              </button>
+              <div>
+                <button
+                  className={selectedCategoryDetail.favorite ? "active" : ""}
+                  type="button"
+                  onClick={() =>
+                    patchCategory(selectedCategoryDetail.id, {
+                      favorite: !selectedCategoryDetail.favorite,
+                    })
+                  }
+                  aria-label="收藏分类"
+                >
+                  <Star />
+                </button>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    setCategoryMenu({
+                      id: selectedCategoryDetail.id,
+                      x: Math.max(8, rect.right - 280),
+                      y: rect.bottom,
+                    });
+                  }}
+                  aria-label="分类设置"
+                >
+                  <MoreHorizontal />
+                </button>
+              </div>
+            </header>
+            <div className="wk-scroll category-detail-scroll">
+              <div className="category-detail-path">
+                {categoryPath(selectedCategoryDetail.id)
+                  .map((part) => part.label)
+                  .join(" / ")}
+              </div>
+              <div className="category-detail-heading">
+                <button
+                  type="button"
+                  style={{
+                    background: `${selectedCategoryDetail.color || categoryColors[0]}14`,
+                  }}
+                  onClick={(event) => {
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    setCategoryMenu({
+                      id: selectedCategoryDetail.id,
+                      x: rect.left,
+                      y: rect.bottom,
+                    });
+                  }}
+                  aria-label="修改分类图标和颜色"
+                >
+                  <CategoryGlyph category={selectedCategoryDetail} />
+                </button>
+                <textarea
+                  className="category-detail-title"
+                  rows={1}
+                  value={selectedCategoryDetail.label}
+                  onChange={(event) =>
+                    patchCategory(selectedCategoryDetail.id, {
+                      label: event.target.value,
+                    })
+                  }
+                  placeholder="未命名分类"
+                  aria-label="分类名称"
+                />
+              </div>
+              <div className="category-detail-meta">
+                <span>
+                  {
+                    items.filter(
+                      (item) =>
+                        !item.trashed &&
+                        categoryMatches(item, selectedCategoryDetail.id),
+                    ).length
+                  }{" "}
+                  条内容
+                </span>
+                <span>
+                  {
+                    custom.filter(
+                      (node) => node.parentId === selectedCategoryDetail.id,
+                    ).length
+                  }{" "}
+                  个子分类
+                </span>
+              </div>
+              <section className="category-detail-editor">
+                <header>分类说明</header>
+                <div className="page-blocks">
+                  {(selectedCategoryDetail.blocks || []).map((block) => (
+                    <div
+                      className="page-block"
+                      style={{ paddingLeft: block.depth * 20 }}
+                      key={block.id}
+                    >
+                      <GripVertical />
+                      {block.type === "toggle" ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            patchPageBlock(
+                              selectedCategoryDetail.id,
+                              block.id,
+                              { open: !block.open },
+                            )
+                          }
+                        >
+                          {block.open ? <ChevronDown /> : <ChevronRight />}
+                        </button>
+                      ) : null}
+                      <textarea
+                        rows={1}
+                        value={block.text}
+                        onChange={(event) => {
+                          const becomesToggle =
+                            event.target.value === "/toggle";
+                          patchPageBlock(selectedCategoryDetail.id, block.id, {
+                            text: becomesToggle ? "" : event.target.value,
+                            type: becomesToggle ? "toggle" : block.type,
+                            open: becomesToggle ? true : block.open,
+                          });
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Backspace" && !block.text) {
+                            event.preventDefault();
+                            removePageBlock(
+                              selectedCategoryDetail.id,
+                              block.id,
+                            );
+                          }
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            addPageBlock(selectedCategoryDetail.id, block.id);
+                          }
+                          if (event.key === "Tab") {
+                            event.preventDefault();
+                            patchPageBlock(
+                              selectedCategoryDetail.id,
+                              block.id,
+                              {
+                                depth: Math.max(
+                                  0,
+                                  block.depth + (event.shiftKey ? -1 : 1),
+                                ),
+                              },
+                            );
+                          }
+                        }}
+                        placeholder="直接写内容，Enter 新建一行，Tab 缩进…"
+                      />
+                    </div>
+                  ))}
+                  {!(selectedCategoryDetail.blocks || []).length ? (
+                    <button
+                      className="add-first-block"
+                      type="button"
+                      onClick={() => addPageBlock(selectedCategoryDetail.id)}
+                    >
+                      写下这个分类要收纳什么…
+                    </button>
+                  ) : null}
+                </div>
+              </section>
+              <button
+                className="open-category-button"
+                type="button"
+                onClick={() => {
+                  setSelectedCategory(selectedCategoryDetail.id);
+                  setView("all");
+                  setRightOpen(false);
+                }}
+              >
+                查看这个分类中的全部内容
+                <ChevronRight />
+              </button>
+            </div>
+          </>
+        ) : selected ? (
           <>
             <header>
               <button

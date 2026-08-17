@@ -37,8 +37,10 @@ test("Signal provides a user-created nested classification tree and working item
   assert.match(workspace, /软件与网站/);
   assert.match(workspace, /项目想法/);
   assert.match(workspace, /新建分类/);
-  assert.match(workspace, /新建子页面/);
-  assert.match(workspace, /category-page-title/);
+  assert.match(workspace, /新建子分类/);
+  assert.match(workspace, /category-detail-title/);
+  assert.match(workspace, /category-child-row/);
+  assert.match(workspace, /分类说明/);
   assert.match(workspace, /page-block/);
   assert.match(workspace, /addCategory/);
   assert.match(workspace, /finishCategoryEdit/);
