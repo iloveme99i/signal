@@ -241,12 +241,12 @@ async function normalizeImage(file: File): Promise<File> {
 }
 async function compressImage(file: File) {
   const normalized = await normalizeImage(file);
-  const dataUrl = await readFileAsDataUrl(normalized);
+  const originalDataUrl = await readFileAsDataUrl(normalized);
   const image = document.createElement("img");
   await new Promise<void>((resolve, reject) => {
     image.onload = () => resolve();
     image.onerror = () => reject(new Error("无法读取这张图片"));
-    image.src = dataUrl;
+    image.src = originalDataUrl;
   });
   const maxSide = 1800,
     scale = Math.min(
@@ -257,7 +257,15 @@ async function compressImage(file: File) {
   canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
   canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
   canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
-  return { file: normalized, dataUrl: canvas.toDataURL("image/jpeg", 0.82) };
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.84);
+  const ocrBlob = await new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("图片压缩处理失败"))),
+      "image/jpeg",
+      0.84,
+    ),
+  );
+  return { dataUrl, ocrBlob };
 }
 
 export default function SignalWorkspace() {
@@ -501,42 +509,53 @@ export default function SignalWorkspace() {
     setImportBatches([]);
     const batches: ImportBatch[] = [];
     try {
-      const { recognize } = await import("tesseract.js");
-      for (let index = 0; index < files.length; index += 1) {
-        const original = files[index];
-        setProgress(
-          `正在处理第 ${index + 1} / ${files.length} 张：${original.name}`,
-        );
-        const normalized = await compressImage(original);
-        const ocr = await recognize(normalized.file, "chi_sim+eng", {
-          logger: (message) => {
-            if (message.status === "recognizing text")
-              setProgress(
-                `正在识别第 ${index + 1} / ${files.length} 张 · ${Math.round((message.progress || 0) * 100)}%`,
-              );
-          },
-        });
-        const rawText = ocr.data.text.trim();
-        const source: Source = {
-          id: uid(),
-          type: "image",
-          title: original.name,
-          rawText,
-          imageData: normalized.dataUrl,
-          createdAt: new Date().toISOString(),
-        };
-        const drafts = rawText
-          ? await analyzeText(original.name, rawText)
-          : [
-              {
-                title: original.name,
-                content: "图片中没有识别到清晰文字，请手动补充内容。",
-                categoryId: "",
-                sourceQuote: "",
-              },
-            ];
-        batches.push({ source, drafts });
-        setImportBatches([...batches]);
+      const { createWorker } = await import("tesseract.js");
+      let currentIndex = 0;
+      setProgress("正在载入截图识别引擎，后续图片会复用…");
+      const worker = await createWorker("chi_sim+eng", undefined, {
+        logger: (message) => {
+          if (message.status === "recognizing text")
+            setProgress(
+              `正在识别第 ${currentIndex + 1} / ${files.length} 张 · ${Math.round((message.progress || 0) * 100)}%`,
+            );
+        },
+      });
+      try {
+        for (let index = 0; index < files.length; index += 1) {
+          currentIndex = index;
+          const original = files[index];
+          setProgress(
+            `正在处理第 ${index + 1} / ${files.length} 张：${original.name}`,
+          );
+          const normalized = await compressImage(original);
+          const ocr = await worker.recognize(normalized.ocrBlob);
+          const rawText = ocr.data.text.trim();
+          const source: Source = {
+            id: uid(),
+            type: "image",
+            title: original.name,
+            rawText,
+            imageData: normalized.dataUrl,
+            createdAt: new Date().toISOString(),
+          };
+          setProgress(
+            `正在整理第 ${index + 1} / ${files.length} 张并匹配分类…`,
+          );
+          const drafts = rawText
+            ? await analyzeText(original.name, rawText)
+            : [
+                {
+                  title: original.name,
+                  content: "图片中没有识别到清晰文字，请手动补充内容。",
+                  categoryId: "",
+                  sourceQuote: "",
+                },
+              ];
+          batches.push({ source, drafts });
+          setImportBatches([...batches]);
+        }
+      } finally {
+        await worker.terminate();
       }
       setProgress("识别完成，请确认内容和分类");
     } catch (error) {
