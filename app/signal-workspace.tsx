@@ -2,24 +2,36 @@
 
 import {
   BookOpen,
+  BriefcaseBusiness,
   Check,
   ChevronDown,
   ChevronRight,
+  Clock3,
+  Copy,
   FileText,
+  Folder,
+  GraduationCap,
   GripVertical,
   Image as ImageIcon,
   Inbox,
   LayoutDashboard,
+  Lightbulb,
   LoaderCircle,
+  MoreHorizontal,
+  MoveRight,
   NotebookPen,
   PanelRightClose,
   PanelRightOpen,
   Pin,
   Plus,
+  RotateCcw,
   Search,
+  Settings2,
+  Sparkles,
   Star,
   Trash2,
   Upload,
+  Wrench,
   X,
 } from "lucide-react";
 import {
@@ -54,6 +66,7 @@ type Item = {
   sourceId: string;
   category: Cat;
   customCategory?: string;
+  categoryRefs?: string[];
   unclassified?: boolean;
   title: string;
   content: string;
@@ -75,6 +88,10 @@ type CustomCategory = {
   id: string;
   label: string;
   parentId: string;
+  emoji?: string;
+  icon?: CategoryIcon;
+  color?: string;
+  favorite?: boolean;
   collapsed?: boolean;
   blocks?: PageBlock[];
 };
@@ -88,18 +105,79 @@ type ImportBatch = { source: Source; drafts: Draft[] };
 type View =
   | "all"
   | "inbox"
+  | "recent"
   | "favorites"
   | "pinned"
   | "board"
   | "notes"
   | "trash";
+type QuickNavId =
+  | "inbox"
+  | "recent"
+  | "favorites"
+  | "pinned"
+  | "board"
+  | "notes";
+type CategoryIcon =
+  | "file"
+  | "folder"
+  | "briefcase"
+  | "learning"
+  | "tools"
+  | "idea"
+  | "sparkles";
+type LibraryMode = "overview" | "list" | "board";
+type SortMode = "manual" | "recent" | "title";
+type CategoryDrop = {
+  targetId: string;
+  position: "before" | "inside" | "after";
+};
+type UndoState = {
+  items: Item[];
+  categories: CustomCategory[];
+  message: string;
+};
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const defaultQuickNav: QuickNavId[] = [
+  "inbox",
+  "recent",
+  "favorites",
+  "pinned",
+  "board",
+  "notes",
+];
+const categoryColors = [
+  "#6b7280",
+  "#2563eb",
+  "#7c3aed",
+  "#db2777",
+  "#dc2626",
+  "#d97706",
+  "#059669",
+  "#0891b2",
+];
+const categoryEmojis = [
+  "💼",
+  "🎓",
+  "🧰",
+  "💡",
+  "📚",
+  "🧠",
+  "🗂️",
+  "📌",
+  "🌱",
+  "🚀",
+  "✨",
+  "📝",
+];
 const sampleCategories: CustomCategory[] = [
   {
     id: "career",
     label: "求职",
     parentId: "root",
+    emoji: "💼",
+    color: "#2563eb",
     blocks: [
       {
         id: "b-career",
@@ -109,23 +187,36 @@ const sampleCategories: CustomCategory[] = [
       },
     ],
   },
-  { id: "career-jobs", label: "岗位收藏", parentId: "career", blocks: [] },
+  {
+    id: "career-jobs",
+    label: "岗位收藏",
+    parentId: "career",
+    emoji: "📌",
+    color: "#2563eb",
+    blocks: [],
+  },
   {
     id: "career-product",
     label: "产品实习",
     parentId: "career-jobs",
+    emoji: "🧑‍💻",
+    color: "#2563eb",
     blocks: [],
   },
   {
     id: "career-interview",
     label: "面试与简历",
     parentId: "career",
+    emoji: "📝",
+    color: "#2563eb",
     blocks: [],
   },
   {
     id: "learning",
     label: "学习",
     parentId: "root",
+    emoji: "🎓",
+    color: "#7c3aed",
     blocks: [
       {
         id: "b-learning",
@@ -135,29 +226,70 @@ const sampleCategories: CustomCategory[] = [
       },
     ],
   },
-  { id: "learning-ai", label: "AI 与开发", parentId: "learning", blocks: [] },
+  {
+    id: "learning-ai",
+    label: "AI 与开发",
+    parentId: "learning",
+    emoji: "🧠",
+    color: "#7c3aed",
+    blocks: [],
+  },
   {
     id: "learning-product",
     label: "产品方法",
     parentId: "learning",
+    emoji: "📚",
+    color: "#7c3aed",
     blocks: [],
   },
-  { id: "resources", label: "工具与资源", parentId: "root", blocks: [] },
+  {
+    id: "resources",
+    label: "工具与资源",
+    parentId: "root",
+    emoji: "🧰",
+    color: "#059669",
+    blocks: [],
+  },
   {
     id: "resources-software",
     label: "软件与网站",
     parentId: "resources",
+    emoji: "🛠️",
+    color: "#059669",
     blocks: [],
   },
   {
     id: "resources-template",
     label: "教程与模板",
     parentId: "resources",
+    emoji: "🗂️",
+    color: "#059669",
     blocks: [],
   },
-  { id: "ideas", label: "灵感与记录", parentId: "root", blocks: [] },
-  { id: "ideas-project", label: "项目想法", parentId: "ideas", blocks: [] },
-  { id: "ideas-later", label: "稍后处理", parentId: "ideas", blocks: [] },
+  {
+    id: "ideas",
+    label: "灵感与记录",
+    parentId: "root",
+    emoji: "💡",
+    color: "#d97706",
+    blocks: [],
+  },
+  {
+    id: "ideas-project",
+    label: "项目想法",
+    parentId: "ideas",
+    emoji: "🚀",
+    color: "#d97706",
+    blocks: [],
+  },
+  {
+    id: "ideas-later",
+    label: "稍后处理",
+    parentId: "ideas",
+    emoji: "🌱",
+    color: "#d97706",
+    blocks: [],
+  },
 ];
 const sampleSources: Source[] = [
   {
@@ -268,6 +400,29 @@ async function compressImage(file: File) {
   return { dataUrl, ocrBlob };
 }
 
+function CategoryGlyph({ category }: { category: CustomCategory }) {
+  if (category.emoji)
+    return <span className="category-emoji">{category.emoji}</span>;
+  const icons = {
+    file: FileText,
+    folder: Folder,
+    briefcase: BriefcaseBusiness,
+    learning: GraduationCap,
+    tools: Wrench,
+    idea: Lightbulb,
+    sparkles: Sparkles,
+  } satisfies Record<CategoryIcon, typeof FileText>;
+  const Icon = icons[category.icon || "file"];
+  return (
+    <span
+      className="category-icon"
+      style={{ color: category.color || categoryColors[0] }}
+    >
+      <Icon />
+    </span>
+  );
+}
+
 export default function SignalWorkspace() {
   const [items, setItems] = useState<Item[]>(sampleItems),
     [sources, setSources] = useState<Source[]>(sampleSources),
@@ -290,6 +445,21 @@ export default function SignalWorkspace() {
   const [editingCategoryId, setEditingCategoryId] = useState(""),
     [categoryName, setCategoryName] = useState(""),
     [newCategoryFocusId, setNewCategoryFocusId] = useState("");
+  const [quickNav, setQuickNav] = useState<QuickNavId[]>(defaultQuickNav),
+    [hiddenNav, setHiddenNav] = useState<QuickNavId[]>([]),
+    [recentCategories, setRecentCategories] = useState<string[]>([]),
+    [quickSettingsOpen, setQuickSettingsOpen] = useState(false),
+    [libraryMode, setLibraryMode] = useState<LibraryMode>("overview"),
+    [sortMode, setSortMode] = useState<SortMode>("manual");
+  const [categoryMenu, setCategoryMenu] = useState<{
+      id: string;
+      x: number;
+      y: number;
+    } | null>(null),
+    [categoryDrop, setCategoryDrop] = useState<CategoryDrop | null>(null),
+    [undoState, setUndoState] = useState<UndoState | null>(null),
+    [toast, setToast] = useState(""),
+    [selectedIds, setSelectedIds] = useState<string[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -342,7 +512,45 @@ export default function SignalWorkspace() {
       }
       setItems(JSON.parse(localStorage.getItem("signal-items") || "[]"));
       setSources(JSON.parse(localStorage.getItem("signal-sources") || "[]"));
-      setCustom(JSON.parse(localStorage.getItem("signal-categories") || "[]"));
+      const savedCategories = JSON.parse(
+        localStorage.getItem("signal-categories") || "[]",
+      );
+      setCustom(
+        savedCategories.map((category: CustomCategory, index: number) => {
+          const sample = sampleCategories.find(
+            (item) => item.id === category.id,
+          );
+          return {
+            ...category,
+            emoji: category.emoji ?? sample?.emoji,
+            icon: category.icon ?? sample?.icon,
+            color:
+              category.color ??
+              sample?.color ??
+              categoryColors[index % categoryColors.length],
+          };
+        }),
+      );
+      const savedQuickNav = JSON.parse(
+        localStorage.getItem("signal-quick-nav") || "null",
+      );
+      if (Array.isArray(savedQuickNav)) setQuickNav(savedQuickNav);
+      const savedHiddenNav = JSON.parse(
+        localStorage.getItem("signal-hidden-nav") || "[]",
+      );
+      if (Array.isArray(savedHiddenNav)) setHiddenNav(savedHiddenNav);
+      const savedRecentCategories = JSON.parse(
+        localStorage.getItem("signal-recent-categories") || "[]",
+      );
+      if (Array.isArray(savedRecentCategories))
+        setRecentCategories(savedRecentCategories);
+      setLibraryMode(
+        (localStorage.getItem("signal-library-mode") as LibraryMode) ||
+          "overview",
+      );
+      setSortMode(
+        (localStorage.getItem("signal-sort-mode") as SortMode) || "manual",
+      );
     } catch {
       setImportError("浏览器中的数据读取失败，但不会影响已保存的 API Key。");
     } finally {
@@ -360,6 +568,37 @@ export default function SignalWorkspace() {
     }
   }, [items, sources, custom, hydrated]);
   useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem("signal-quick-nav", JSON.stringify(quickNav));
+    localStorage.setItem("signal-hidden-nav", JSON.stringify(hiddenNav));
+    localStorage.setItem(
+      "signal-recent-categories",
+      JSON.stringify(recentCategories),
+    );
+    localStorage.setItem("signal-library-mode", libraryMode);
+    localStorage.setItem("signal-sort-mode", sortMode);
+  }, [quickNav, hiddenNav, recentCategories, libraryMode, sortMode, hydrated]);
+  useEffect(() => {
+    if (selectedCategory === "all") return;
+    setRecentCategories((current) =>
+      [
+        selectedCategory,
+        ...current.filter((id) => id !== selectedCategory),
+      ].slice(0, 3),
+    );
+  }, [selectedCategory]);
+  useEffect(() => {
+    if (!categoryMenu) return;
+    const close = () => setCategoryMenu(null);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [categoryMenu]);
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(""), 2600);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+  useEffect(() => {
     if (!newCategoryFocusId) return;
     const frame = requestAnimationFrame(() => {
       const input = document.querySelector<HTMLInputElement>(
@@ -374,7 +613,8 @@ export default function SignalWorkspace() {
 
   const selected = items.find((item) => item.id === selectedId),
     selectedSource = sources.find((source) => source.id === selected?.sourceId),
-    activeCategory = custom.find((node) => node.id === selectedCategory);
+    activeCategory = custom.find((node) => node.id === selectedCategory),
+    menuCategory = custom.find((node) => node.id === categoryMenu?.id);
   const descendants = (id: string): string[] => {
     const direct = custom
       .filter((node) => node.parentId === id)
@@ -393,29 +633,44 @@ export default function SignalWorkspace() {
     const ids = new Set([id, ...descendants(id)]);
     return (
       ids.has(item.category) ||
-      Boolean(item.customCategory && ids.has(item.customCategory))
+      Boolean(item.customCategory && ids.has(item.customCategory)) ||
+      Boolean(item.categoryRefs?.some((categoryId) => ids.has(categoryId)))
     );
   };
-  const filtered = useMemo(
-    () =>
-      items.filter((item) => {
-        if (view === "trash") return Boolean(item.trashed);
-        if (item.trashed) return false;
-        if (view === "inbox" && !item.unclassified) return false;
-        if (view === "favorites" && !item.favorite) return false;
-        if (view === "pinned" && !item.pinned) return false;
-        if (
-          view === "notes" &&
-          sources.find((source) => source.id === item.sourceId)?.type !== "note"
-        )
-          return false;
-        if (!categoryMatches(item, selectedCategory)) return false;
-        return `${item.title}${item.content}${item.note || ""}`
-          .toLowerCase()
-          .includes(query.toLowerCase());
-      }),
-    [items, sources, view, selectedCategory, query, custom],
-  );
+  const filtered = useMemo(() => {
+    const result = items.filter((item) => {
+      if (view === "trash") return Boolean(item.trashed);
+      if (item.trashed) return false;
+      if (view === "inbox" && !item.unclassified) return false;
+      if (view === "favorites" && !item.favorite) return false;
+      if (view === "pinned" && !item.pinned) return false;
+      if (
+        view === "notes" &&
+        sources.find((source) => source.id === item.sourceId)?.type !== "note"
+      )
+        return false;
+      if (!categoryMatches(item, selectedCategory)) return false;
+      const searchablePath = item.customCategory
+        ? categoryPath(item.customCategory)
+            .map((part) => part.label)
+            .join(" ")
+        : "待分类";
+      return `${item.title}${item.content}${item.note || ""}${searchablePath}`
+        .toLowerCase()
+        .includes(query.toLowerCase());
+    });
+    if (sortMode === "recent" || view === "recent")
+      return [...result].sort(
+        (a, b) =>
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime(),
+      );
+    if (sortMode === "title")
+      return [...result].sort((a, b) =>
+        a.title.localeCompare(b.title, "zh-CN"),
+      );
+    return result;
+  }, [items, sources, view, selectedCategory, query, custom, sortMode]);
   const patchItem = (id: string, patch: Partial<Item>) =>
     setItems((current) =>
       current.map((item) => (item.id === id ? { ...item, ...patch } : item)),
@@ -616,6 +871,8 @@ export default function SignalWorkspace() {
         id,
         label: "",
         parentId,
+        icon: "file",
+        color: categoryColors[custom.length % categoryColors.length],
         blocks: [{ id: uid(), text: "", depth: 0, type: "text" }],
       },
     ]);
@@ -685,15 +942,21 @@ export default function SignalWorkspace() {
         };
       }),
     );
+  const remember = (message: string) => {
+    setUndoState({ items, categories: custom, message });
+    setToast(message);
+  };
+  const undoLastAction = () => {
+    if (!undoState) return;
+    setItems(undoState.items);
+    setCustom(undoState.categories);
+    setToast("已撤销");
+    setUndoState(null);
+  };
   const deleteCategory = (id: string) => {
     const node = custom.find((category) => category.id === id);
-    if (
-      !node ||
-      !window.confirm(
-        `删除“${node.label}”及其子分类？分类中的内容会进入待分类。`,
-      )
-    )
-      return;
+    if (!node) return;
+    remember(`已删除“${node.label}”`);
     const ids = new Set([id, ...descendants(id)]);
     setCustom((current) => current.filter((category) => !ids.has(category.id)));
     setItems((current) =>
@@ -704,12 +967,118 @@ export default function SignalWorkspace() {
       ),
     );
     if (ids.has(selectedCategory)) setSelectedCategory("all");
+    setCategoryMenu(null);
+  };
+  const duplicateCategory = (id: string) => {
+    const root = custom.find((category) => category.id === id);
+    if (!root) return;
+    remember(`已复制“${root.label}”的分类结构`);
+    const cloneBranch = (
+      sourceId: string,
+      parentId: string,
+    ): CustomCategory[] => {
+      const source = custom.find((category) => category.id === sourceId);
+      if (!source) return [];
+      const newId = uid();
+      const clone: CustomCategory = {
+        ...source,
+        id: newId,
+        parentId,
+        label: sourceId === id ? `${source.label} 副本` : source.label,
+        favorite: false,
+        blocks: (source.blocks || []).map((block) => ({ ...block, id: uid() })),
+      };
+      return [
+        clone,
+        ...custom
+          .filter((category) => category.parentId === sourceId)
+          .flatMap((child) => cloneBranch(child.id, newId)),
+      ];
+    };
+    setCustom((current) => [...current, ...cloneBranch(id, root.parentId)]);
+    setCategoryMenu(null);
+  };
+  const moveCategory = (
+    draggedId: string,
+    targetId: string,
+    position: CategoryDrop["position"],
+  ) => {
+    if (draggedId === targetId || descendants(draggedId).includes(targetId))
+      return;
+    const target = custom.find((category) => category.id === targetId);
+    if (!target) return;
+    remember("已调整分类位置");
+    setCustom((current) => {
+      const dragged = current.find((category) => category.id === draggedId);
+      if (!dragged) return current;
+      const remaining = current.filter((category) => category.id !== draggedId);
+      const next = {
+        ...dragged,
+        parentId: position === "inside" ? targetId : target.parentId,
+      };
+      if (position === "inside") return [...remaining, next];
+      const targetIndex = remaining.findIndex(
+        (category) => category.id === targetId,
+      );
+      remaining.splice(targetIndex + (position === "after" ? 1 : 0), 0, next);
+      return remaining;
+    });
+    if (position === "inside")
+      setCollapsed((current) => ({ ...current, [targetId]: false }));
   };
   const dropIntoCategory = (event: DragEvent, targetId: string) => {
     event.preventDefault();
+    const categoryId = event.dataTransfer.getData("text/signal-category");
+    if (categoryId) {
+      const position =
+        categoryDrop?.targetId === targetId ? categoryDrop.position : "inside";
+      moveCategory(categoryId, targetId, position);
+      setCategoryDrop(null);
+      return;
+    }
     const itemId = event.dataTransfer.getData("text/signal-item");
-    if (itemId && custom.some((node) => node.id === targetId))
-      patchItem(itemId, { customCategory: targetId, unclassified: false });
+    if (itemId && custom.some((node) => node.id === targetId)) {
+      remember(event.altKey ? "已添加分类引用" : "已移动内容");
+      const movingIds = selectedIds.includes(itemId) ? selectedIds : [itemId];
+      setItems((current) =>
+        current.map((item) => {
+          if (!movingIds.includes(item.id)) return item;
+          if (event.altKey) {
+            const refs = new Set(item.categoryRefs || []);
+            if (item.customCategory !== targetId) refs.add(targetId);
+            return { ...item, categoryRefs: [...refs], unclassified: false };
+          }
+          return { ...item, customCategory: targetId, unclassified: false };
+        }),
+      );
+      setSelectedIds([]);
+    }
+  };
+  const reorderQuickNav = (draggedId: QuickNavId, targetId: QuickNavId) => {
+    setQuickNav((current) => {
+      const next = current.filter((id) => id !== draggedId);
+      next.splice(next.indexOf(targetId), 0, draggedId);
+      return next;
+    });
+  };
+  const reorderItems = (draggedId: string, targetId: string) => {
+    if (sortMode !== "manual") {
+      setToast("切换到手动排序后才能拖动内容");
+      return;
+    }
+    if (draggedId === targetId) return;
+    remember("已调整内容顺序");
+    setItems((current) => {
+      const dragged = current.find((item) => item.id === draggedId);
+      if (!dragged) return current;
+      const next = current.filter((item) => item.id !== draggedId);
+      next.splice(
+        next.findIndex((item) => item.id === targetId),
+        0,
+        dragged,
+      );
+      return next;
+    });
   };
   const renderTree = (parentId: string, depth = 0): React.ReactNode => {
     const children = custom.filter((node) => node.parentId === parentId);
@@ -721,13 +1090,40 @@ export default function SignalWorkspace() {
       return (
         <div key={node.id}>
           <div
-            className={`tree-row ${selectedCategory === node.id ? "active" : ""}`}
+            className={`tree-row ${selectedCategory === node.id ? "active" : ""} ${categoryDrop?.targetId === node.id ? `drop-${categoryDrop.position}` : ""}`}
             style={{ paddingLeft: 8 + depth * 15 }}
+            draggable={editingCategoryId !== node.id}
+            onDragStart={(event) => {
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("text/signal-category", node.id);
+            }}
+            onDragEnd={() => setCategoryDrop(null)}
             onContextMenu={(event) => {
               event.preventDefault();
-              deleteCategory(node.id);
+              setCategoryMenu({
+                id: node.id,
+                x: Math.max(
+                  8,
+                  Math.min(event.clientX, window.innerWidth - 286),
+                ),
+                y: Math.max(
+                  8,
+                  Math.min(event.clientY, window.innerHeight - 430),
+                ),
+              });
             }}
-            onDragOver={(event) => event.preventDefault()}
+            onDragOver={(event) => {
+              event.preventDefault();
+              if (!event.dataTransfer.types.includes("text/signal-category"))
+                return;
+              const rect = event.currentTarget.getBoundingClientRect();
+              const ratio = (event.clientY - rect.top) / rect.height;
+              setCategoryDrop({
+                targetId: node.id,
+                position:
+                  ratio < 0.28 ? "before" : ratio > 0.72 ? "after" : "inside",
+              });
+            }}
             onDrop={(event) => dropIntoCategory(event, node.id)}
           >
             {hasChildren ? (
@@ -778,18 +1174,47 @@ export default function SignalWorkspace() {
                   setView("all");
                 }}
               >
-                <FileText aria-hidden="true" />
+                <CategoryGlyph category={node} />
                 <span>{node.label || "未命名"}</span>
+                <em>
+                  {
+                    items.filter(
+                      (item) => !item.trashed && categoryMatches(item, node.id),
+                    ).length
+                  }
+                </em>
               </button>
             )}
-            <button
-              className="tree-add"
-              type="button"
-              onClick={() => addCategory(node.id)}
-              aria-label={`在${node.label || "未命名"}下添加分类`}
-            >
-              <Plus />
-            </button>
+            <div className="tree-tools">
+              <button
+                type="button"
+                onClick={() => addCategory(node.id)}
+                aria-label={`在${node.label || "未命名"}下添加分类`}
+              >
+                <Plus />
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  setCategoryMenu({
+                    id: node.id,
+                    x: Math.max(
+                      8,
+                      Math.min(rect.right, window.innerWidth - 286),
+                    ),
+                    y: Math.max(
+                      8,
+                      Math.min(rect.bottom, window.innerHeight - 430),
+                    ),
+                  });
+                }}
+                aria-label={`${node.label || "未命名"}更多操作`}
+              >
+                <MoreHorizontal />
+              </button>
+            </div>
           </div>
           {hasChildren && !isCollapsed ? renderTree(node.id, depth + 1) : null}
         </div>
@@ -800,48 +1225,59 @@ export default function SignalWorkspace() {
   const viewTitle: Record<View, string> = {
     all:
       selectedCategory === "all"
-        ? "全部内容"
+        ? "信息库"
         : custom.find((node) => node.id === selectedCategory)?.label || "内容",
     inbox: "待分类",
+    recent: "最近使用",
     favorites: "收藏",
     pinned: "置顶",
     board: "看板",
     notes: "备忘录",
     trash: "回收站",
   };
-  const navItems = [
-    {
-      id: "all" as View,
-      label: "全部内容",
-      icon: BookOpen,
-      count: items.filter((item) => !item.trashed).length,
-    },
-    {
-      id: "inbox" as View,
+  const navItems: Record<
+    QuickNavId,
+    { label: string; icon: typeof BookOpen; count?: number }
+  > = {
+    inbox: {
       label: "待分类",
       icon: Inbox,
       count: items.filter((item) => !item.trashed && item.unclassified).length,
     },
-    {
-      id: "favorites" as View,
+    recent: { label: "最近使用", icon: Clock3 },
+    favorites: {
       label: "收藏",
       icon: Star,
       count: items.filter((item) => !item.trashed && item.favorite).length,
     },
-    {
-      id: "pinned" as View,
+    pinned: {
       label: "置顶",
       icon: Pin,
       count: items.filter((item) => !item.trashed && item.pinned).length,
     },
-    { id: "board" as View, label: "看板", icon: LayoutDashboard },
-    { id: "notes" as View, label: "备忘录", icon: NotebookPen },
-  ];
+    board: { label: "看板", icon: LayoutDashboard },
+    notes: { label: "备忘录", icon: NotebookPen },
+  };
 
   return (
     <main className="wk">
       <aside className="wk-side">
-        <header>
+        <header
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            setView("all");
+            setSelectedCategory("all");
+            setLibraryMode("overview");
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              setView("all");
+              setSelectedCategory("all");
+              setLibraryMode("overview");
+            }
+          }}
+        >
           <b>S</b>
           <strong>Signal</strong>
         </header>
@@ -861,26 +1297,127 @@ export default function SignalWorkspace() {
             placeholder="搜索内容"
           />
         </label>
-        <nav>
-          {navItems.map((nav) => (
-            <button
-              className={view === nav.id ? "active" : ""}
-              key={nav.id}
-              type="button"
-              onClick={() => {
-                setView(nav.id);
-                setSelectedCategory("all");
-              }}
+        <div className="quick-nav-heading">
+          <span>快捷入口</span>
+          <button
+            type="button"
+            onClick={() => setQuickSettingsOpen((open) => !open)}
+            aria-label="编辑快捷入口"
+          >
+            <Settings2 />
+          </button>
+          {quickSettingsOpen ? (
+            <div
+              className="quick-settings"
+              onClick={(event) => event.stopPropagation()}
             >
-              <nav.icon />
-              <span>{nav.label}</span>
-              {typeof nav.count === "number" ? <em>{nav.count}</em> : null}
-            </button>
-          ))}
+              <strong>显示快捷入口</strong>
+              {defaultQuickNav.map((id) => (
+                <label key={id}>
+                  <input
+                    type="checkbox"
+                    checked={!hiddenNav.includes(id)}
+                    onChange={() =>
+                      setHiddenNav((current) =>
+                        current.includes(id)
+                          ? current.filter((item) => item !== id)
+                          : [...current, id],
+                      )
+                    }
+                  />
+                  {navItems[id].label}
+                </label>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <nav>
+          {quickNav
+            .filter((id) => !hiddenNav.includes(id))
+            .map((id) => {
+              const nav = navItems[id];
+              return (
+                <button
+                  className={view === id ? "active" : ""}
+                  key={id}
+                  type="button"
+                  draggable
+                  onDragStart={(event) =>
+                    event.dataTransfer.setData("text/signal-nav", id)
+                  }
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    const dragged = event.dataTransfer.getData(
+                      "text/signal-nav",
+                    ) as QuickNavId;
+                    if (dragged) reorderQuickNav(dragged, id);
+                  }}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    setHiddenNav((current) =>
+                      current.includes(id) ? current : [...current, id],
+                    );
+                  }}
+                  onClick={() => {
+                    setView(id as View);
+                    setSelectedCategory("all");
+                  }}
+                >
+                  <GripVertical className="nav-drag" />
+                  <nav.icon />
+                  <span>{nav.label}</span>
+                  {typeof nav.count === "number" ? <em>{nav.count}</em> : null}
+                </button>
+              );
+            })}
         </nav>
+        {recentCategories.some((id) =>
+          custom.some((node) => node.id === id),
+        ) ? (
+          <section className="favorite-categories recent-categories">
+            <header>最近分类</header>
+            {recentCategories.map((id) => {
+              const node = custom.find((category) => category.id === id);
+              return node ? (
+                <button
+                  key={node.id}
+                  type="button"
+                  onClick={() => {
+                    setView("all");
+                    setSelectedCategory(node.id);
+                  }}
+                >
+                  <CategoryGlyph category={node} />
+                  <span>{node.label}</span>
+                </button>
+              ) : null;
+            })}
+          </section>
+        ) : null}
+        {custom.some((node) => node.favorite) ? (
+          <section className="favorite-categories">
+            <header>收藏分类</header>
+            {custom
+              .filter((node) => node.favorite)
+              .map((node) => (
+                <button
+                  key={node.id}
+                  type="button"
+                  onClick={() => {
+                    setView("all");
+                    setSelectedCategory(node.id);
+                  }}
+                >
+                  <CategoryGlyph category={node} />
+                  <span>{node.label}</span>
+                </button>
+              ))}
+          </section>
+        ) : null}
         <section className="category-tree">
           <header>
-            <span>分类</span>
+            <span>我的分类</span>
             <button
               type="button"
               onClick={() => addCategory("root")}
@@ -923,6 +1460,48 @@ export default function SignalWorkspace() {
             <h1>{viewTitle[view]}</h1>
           </div>
           <div className="list-actions">
+            {view === "all" && selectedCategory === "all" ? (
+              <div className="view-switch" aria-label="信息库视图">
+                <button
+                  className={libraryMode === "overview" ? "active" : ""}
+                  type="button"
+                  onClick={() => setLibraryMode("overview")}
+                >
+                  概览
+                </button>
+                <button
+                  className={libraryMode === "list" ? "active" : ""}
+                  type="button"
+                  onClick={() => setLibraryMode("list")}
+                >
+                  列表
+                </button>
+                <button
+                  className={libraryMode === "board" ? "active" : ""}
+                  type="button"
+                  onClick={() => setLibraryMode("board")}
+                >
+                  看板
+                </button>
+              </div>
+            ) : null}
+            {(libraryMode === "list" ||
+              selectedCategory !== "all" ||
+              view !== "all") &&
+            view !== "board" ? (
+              <select
+                className="sort-select"
+                value={sortMode}
+                onChange={(event) =>
+                  setSortMode(event.target.value as SortMode)
+                }
+                aria-label="内容排序"
+              >
+                <option value="manual">手动排序</option>
+                <option value="recent">最近添加</option>
+                <option value="title">标题排序</option>
+              </select>
+            ) : null}
             <button
               className="upload-button"
               type="button"
@@ -950,15 +1529,37 @@ export default function SignalWorkspace() {
                 </span>
               ))}
             </div>
-            <input
-              className="category-page-title"
-              autoFocus={newCategoryFocusId === activeCategory.id}
-              value={activeCategory.label}
-              onChange={(event) =>
-                patchCategory(activeCategory.id, { label: event.target.value })
-              }
-              placeholder="未命名"
-            />
+            <div className="category-page-heading">
+              <button
+                className="category-page-icon"
+                type="button"
+                style={{
+                  background: `${activeCategory.color || categoryColors[0]}18`,
+                }}
+                onClick={(event) => {
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  setCategoryMenu({
+                    id: activeCategory.id,
+                    x: rect.left,
+                    y: rect.bottom,
+                  });
+                }}
+                aria-label="修改分类图标和颜色"
+              >
+                <CategoryGlyph category={activeCategory} />
+              </button>
+              <input
+                className="category-page-title"
+                autoFocus={newCategoryFocusId === activeCategory.id}
+                value={activeCategory.label}
+                onChange={(event) =>
+                  patchCategory(activeCategory.id, {
+                    label: event.target.value,
+                  })
+                }
+                placeholder="未命名"
+              />
+            </div>
             <div className="page-blocks">
               {(activeCategory.blocks || []).map((block) => (
                 <div
@@ -1051,7 +1652,24 @@ export default function SignalWorkspace() {
             </section>
           </div>
         ) : null}
-        {view === "board" ? (
+        {view === "all" &&
+        selectedCategory === "all" &&
+        libraryMode === "overview" ? (
+          <LibraryOverview
+            items={items.filter((item) => !item.trashed)}
+            sources={sources}
+            categories={custom}
+            onOpenCategory={(id) => setSelectedCategory(id)}
+            onOpenItem={(id) => {
+              setSelectedId(id);
+              setRightOpen(true);
+            }}
+            onOpenInbox={() => setView("inbox")}
+          />
+        ) : view === "board" ||
+          (view === "all" &&
+            selectedCategory === "all" &&
+            libraryMode === "board") ? (
           <Board
             items={filtered}
             sources={sources}
@@ -1066,8 +1684,51 @@ export default function SignalWorkspace() {
             className={`material-list ${activeCategory && view === "all" ? "inside-page" : ""}`}
           >
             <div className="list-label">
-              <span>内容</span>
-              <span>{filtered.length} 条</span>
+              {selectedIds.length ? (
+                <>
+                  <span>已选择 {selectedIds.length} 条</span>
+                  <div className="bulk-actions">
+                    <select
+                      defaultValue=""
+                      aria-label="批量移动到分类"
+                      onChange={(event) => {
+                        const categoryId = event.target.value;
+                        if (!categoryId) return;
+                        remember(`已移动 ${selectedIds.length} 条内容`);
+                        setItems((current) =>
+                          current.map((entry) =>
+                            selectedIds.includes(entry.id)
+                              ? {
+                                  ...entry,
+                                  customCategory: categoryId,
+                                  unclassified: false,
+                                }
+                              : entry,
+                          ),
+                        );
+                        setSelectedIds([]);
+                      }}
+                    >
+                      <option value="">移动到分类…</option>
+                      {custom.map((node) => (
+                        <option key={node.id} value={node.id}>
+                          {categoryPath(node.id)
+                            .map((part) => part.label)
+                            .join(" / ")}
+                        </option>
+                      ))}
+                    </select>
+                    <button type="button" onClick={() => setSelectedIds([])}>
+                      取消
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span>内容</span>
+                  <span>{filtered.length} 条</span>
+                </>
+              )}
             </div>
             {filtered.length ? (
               filtered.map((item) => {
@@ -1079,15 +1740,40 @@ export default function SignalWorkspace() {
                     className={`material-row ${selectedId === item.id ? "selected" : ""}`}
                     key={item.id}
                     draggable
-                    onDragStart={(event) =>
-                      event.dataTransfer.setData("text/signal-item", item.id)
-                    }
+                    onDragStart={(event) => {
+                      event.dataTransfer.effectAllowed = "copyMove";
+                      event.dataTransfer.setData("text/signal-item", item.id);
+                    }}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      const draggedId =
+                        event.dataTransfer.getData("text/signal-item");
+                      if (draggedId) reorderItems(draggedId, item.id);
+                    }}
                     onClick={() => {
                       setSelectedId(item.id);
                       setRightOpen(true);
                     }}
                   >
-                    <GripVertical className="drag-handle" />
+                    <div
+                      className="row-leading"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(item.id)}
+                        onChange={() =>
+                          setSelectedIds((current) =>
+                            current.includes(item.id)
+                              ? current.filter((id) => id !== item.id)
+                              : [...current, item.id],
+                          )
+                        }
+                        aria-label={`选择${item.title}`}
+                      />
+                      <GripVertical className="drag-handle" />
+                    </div>
                     <div className="material-thumb">
                       {source?.imageData ? (
                         <img src={source.imageData} alt="" />
@@ -1104,6 +1790,9 @@ export default function SignalWorkspace() {
                               .map((part) => part.label)
                               .join(" / ")
                           : "待分类"}{" "}
+                        {item.categoryRefs?.length
+                          ? ` +${item.categoryRefs.length} 个分类`
+                          : ""}{" "}
                         · {source?.title || "手动记录"}
                       </small>
                     </div>
@@ -1136,6 +1825,23 @@ export default function SignalWorkspace() {
                 <X />
               </button>
               <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    remember(`已复制“${selected.title}”`);
+                    const duplicate = {
+                      ...selected,
+                      id: uid(),
+                      title: `${selected.title} 副本`,
+                      createdAt: new Date().toISOString(),
+                    };
+                    setItems((current) => [duplicate, ...current]);
+                    setSelectedId(duplicate.id);
+                  }}
+                  aria-label="复制内容"
+                >
+                  <Copy />
+                </button>
                 <button
                   className={selected.favorite ? "active" : ""}
                   type="button"
@@ -1223,6 +1929,36 @@ export default function SignalWorkspace() {
                   ))}
                 </select>
               </label>
+              {selected.categoryRefs?.length ? (
+                <div className="category-reference-list">
+                  <span>同时归入</span>
+                  <div>
+                    {selected.categoryRefs.map((categoryId) => {
+                      const category = custom.find(
+                        (node) => node.id === categoryId,
+                      );
+                      return category ? (
+                        <button
+                          type="button"
+                          key={categoryId}
+                          onClick={() =>
+                            patchItem(selected.id, {
+                              categoryRefs: selected.categoryRefs?.filter(
+                                (id) => id !== categoryId,
+                              ),
+                            })
+                          }
+                          title="点击移除关联分类"
+                        >
+                          <CategoryGlyph category={category} />
+                          {category.label}
+                          <X />
+                        </button>
+                      ) : null;
+                    })}
+                  </div>
+                </div>
+              ) : null}
               <section className="detail-section">
                 <header>整理后的内容</header>
                 <textarea
@@ -1296,6 +2032,164 @@ export default function SignalWorkspace() {
           </>
         ) : null}
       </aside>
+      {categoryMenu && menuCategory ? (
+        <section
+          className="category-menu"
+          style={{ left: categoryMenu.x, top: categoryMenu.y }}
+          onClick={(event) => event.stopPropagation()}
+          role="dialog"
+          aria-label={`${menuCategory.label}分类设置`}
+        >
+          <header>
+            <CategoryGlyph category={menuCategory} />
+            <strong>{menuCategory.label || "未命名"}</strong>
+            <button
+              type="button"
+              onClick={() => setCategoryMenu(null)}
+              aria-label="关闭"
+            >
+              <X />
+            </button>
+          </header>
+          <label className="menu-label">Emoji</label>
+          <div className="emoji-picker">
+            {categoryEmojis.map((emoji) => (
+              <button
+                className={menuCategory.emoji === emoji ? "active" : ""}
+                type="button"
+                key={emoji}
+                onClick={() => patchCategory(menuCategory.id, { emoji })}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+          <label className="menu-label">线性图标</label>
+          <div className="icon-picker">
+            {(
+              [
+                "file",
+                "folder",
+                "briefcase",
+                "learning",
+                "tools",
+                "idea",
+                "sparkles",
+              ] as CategoryIcon[]
+            ).map((icon) => {
+              const preview = { ...menuCategory, emoji: "", icon };
+              return (
+                <button
+                  className={
+                    !menuCategory.emoji && menuCategory.icon === icon
+                      ? "active"
+                      : ""
+                  }
+                  type="button"
+                  key={icon}
+                  onClick={() =>
+                    patchCategory(menuCategory.id, { emoji: "", icon })
+                  }
+                >
+                  <CategoryGlyph category={preview} />
+                </button>
+              );
+            })}
+          </div>
+          <label className="menu-label">强调色</label>
+          <div className="color-picker">
+            {categoryColors.map((color) => (
+              <button
+                className={menuCategory.color === color ? "active" : ""}
+                type="button"
+                key={color}
+                style={{ background: color }}
+                onClick={() => patchCategory(menuCategory.id, { color })}
+                aria-label={`选择颜色 ${color}`}
+              />
+            ))}
+          </div>
+          <div className="category-menu-actions">
+            <button
+              type="button"
+              onClick={() => {
+                setEditingCategoryId(menuCategory.id);
+                setCategoryName(menuCategory.label);
+                setCategoryMenu(null);
+              }}
+            >
+              <FileText />
+              重命名
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                patchCategory(menuCategory.id, {
+                  favorite: !menuCategory.favorite,
+                })
+              }
+            >
+              <Star />
+              {menuCategory.favorite ? "取消收藏" : "收藏分类"}
+            </button>
+            <button
+              type="button"
+              onClick={() => duplicateCategory(menuCategory.id)}
+            >
+              <Copy />
+              复制分类结构
+            </button>
+            <label className="move-category">
+              <MoveRight />
+              移动到
+              <select
+                value={menuCategory.parentId}
+                onChange={(event) => {
+                  remember("已移动分类");
+                  patchCategory(menuCategory.id, {
+                    parentId: event.target.value,
+                  });
+                  setCategoryMenu(null);
+                }}
+              >
+                <option value="root">最外层</option>
+                {custom
+                  .filter(
+                    (node) =>
+                      node.id !== menuCategory.id &&
+                      !descendants(menuCategory.id).includes(node.id),
+                  )
+                  .map((node) => (
+                    <option key={node.id} value={node.id}>
+                      {categoryPath(node.id)
+                        .map((part) => part.label)
+                        .join(" / ")}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <button
+              className="danger"
+              type="button"
+              onClick={() => deleteCategory(menuCategory.id)}
+            >
+              <Trash2 />
+              删除分类
+            </button>
+          </div>
+        </section>
+      ) : null}
+      {toast ? (
+        <div className="action-toast">
+          <span>{toast}</span>
+          {undoState ? (
+            <button type="button" onClick={undoLastAction}>
+              <RotateCcw />
+              撤销
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {importOpen ? (
         <div
           className="import-backdrop"
@@ -1489,6 +2383,128 @@ export default function SignalWorkspace() {
   );
 }
 
+function LibraryOverview({
+  items,
+  sources,
+  categories,
+  onOpenCategory,
+  onOpenItem,
+  onOpenInbox,
+}: {
+  items: Item[];
+  sources: Source[];
+  categories: CustomCategory[];
+  onOpenCategory: (id: string) => void;
+  onOpenItem: (id: string) => void;
+  onOpenInbox: () => void;
+}) {
+  const roots = categories.filter((category) => category.parentId === "root");
+  const descendantsOf = (id: string): string[] => {
+    const children = categories
+      .filter((category) => category.parentId === id)
+      .map((category) => category.id);
+    return children.flatMap((child) => [child, ...descendantsOf(child)]);
+  };
+  const recentItems = [...items]
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt || 0).getTime() -
+        new Date(a.createdAt || 0).getTime(),
+    )
+    .slice(0, 5);
+  return (
+    <div className="library-overview">
+      <section className="overview-summary">
+        <div>
+          <span>已整理内容</span>
+          <strong>{items.filter((item) => !item.unclassified).length}</strong>
+        </div>
+        <button type="button" onClick={onOpenInbox}>
+          <span>等待分类</span>
+          <strong>{items.filter((item) => item.unclassified).length}</strong>
+        </button>
+        <div>
+          <span>我的分类</span>
+          <strong>{categories.length}</strong>
+        </div>
+      </section>
+      <section className="overview-section">
+        <header>
+          <div>
+            <strong>分类概览</strong>
+            <span>进入一个分类，继续查看和整理其中的内容</span>
+          </div>
+        </header>
+        <div className="category-grid">
+          {roots.map((category) => {
+            const ids = new Set([category.id, ...descendantsOf(category.id)]);
+            const categoryItems = items.filter(
+              (item) =>
+                Boolean(item.customCategory && ids.has(item.customCategory)) ||
+                Boolean(item.categoryRefs?.some((id) => ids.has(id))),
+            );
+            return (
+              <button
+                className="category-card"
+                type="button"
+                key={category.id}
+                onClick={() => onOpenCategory(category.id)}
+              >
+                <span
+                  className="category-card-icon"
+                  style={{
+                    background: `${category.color || categoryColors[0]}18`,
+                  }}
+                >
+                  <CategoryGlyph category={category} />
+                </span>
+                <span className="category-card-copy">
+                  <strong>{category.label}</strong>
+                  <small>{categoryItems.length} 条内容</small>
+                </span>
+                <span className="category-card-recents">
+                  {categoryItems.slice(0, 2).map((item) => (
+                    <small key={item.id}>{item.title}</small>
+                  ))}
+                  {!categoryItems.length ? <small>还没有内容</small> : null}
+                </span>
+                <ChevronRight />
+              </button>
+            );
+          })}
+        </div>
+      </section>
+      <section className="overview-section recent-overview">
+        <header>
+          <div>
+            <strong>最近整理</strong>
+            <span>继续处理刚刚进入 Signal 的信息</span>
+          </div>
+        </header>
+        <div>
+          {recentItems.map((item) => (
+            <button
+              type="button"
+              key={item.id}
+              onClick={() => onOpenItem(item.id)}
+            >
+              <FileText />
+              <span>
+                <strong>{item.title}</strong>
+                <small>
+                  {sources.find((source) => source.id === item.sourceId)
+                    ?.title || "手动记录"}
+                </small>
+              </span>
+              <ChevronRight />
+            </button>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function Board({
   items,
   sources,
@@ -1512,12 +2528,17 @@ function Board({
       {columns.map((column) => {
         const ids = new Set([column.id, ...descendantsOf(column.id)]);
         const columnItems = items.filter(
-          (item) => item.customCategory && ids.has(item.customCategory),
+          (item) =>
+            Boolean(item.customCategory && ids.has(item.customCategory)) ||
+            Boolean(item.categoryRefs?.some((id) => ids.has(id))),
         );
         return (
           <section key={column.id}>
             <header>
-              <strong>{column.label}</strong>
+              <strong>
+                <CategoryGlyph category={column} />
+                {column.label}
+              </strong>
               <span>{columnItems.length}</span>
             </header>
             {columnItems.map((item) => (

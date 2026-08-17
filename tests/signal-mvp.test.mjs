@@ -25,7 +25,10 @@ test("Signal first-round MVP keeps the complete capture and source flow", async 
 });
 
 test("Signal provides a user-created nested classification tree and working item actions", async () => {
-  const workspace = await readFile(new URL("app/signal-workspace.tsx", root), "utf8");
+  const workspace = await readFile(
+    new URL("app/signal-workspace.tsx", root),
+    "utf8",
+  );
   for (const label of ["收藏", "置顶", "看板", "备忘录", "回收站"]) {
     assert.match(workspace, new RegExp(label));
   }
@@ -45,6 +48,18 @@ test("Signal provides a user-created nested classification tree and working item
   assert.match(workspace, /deleteCategory/);
   assert.match(workspace, /dropIntoCategory/);
   assert.match(workspace, /彻底删除/);
+  assert.match(workspace, /LibraryOverview/);
+  assert.match(workspace, /分类概览/);
+  assert.match(workspace, /signal-quick-nav/);
+  assert.match(workspace, /signal-recent-categories/);
+  assert.match(workspace, /text\/signal-category/);
+  assert.match(workspace, /drop-\$\{categoryDrop\.position\}/);
+  assert.match(workspace, /categoryEmojis/);
+  assert.match(workspace, /categoryColors/);
+  assert.match(workspace, /复制分类结构/);
+  assert.match(workspace, /undoLastAction/);
+  assert.match(workspace, /批量移动到分类/);
+  assert.match(workspace, /手动排序/);
   assert.doesNotMatch(workspace, /模型设置/);
   assert.doesNotMatch(workspace, /事务-时间|事务-执行|项目-资料/);
 });
