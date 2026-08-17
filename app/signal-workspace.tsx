@@ -161,58 +161,59 @@ const sampleCategories: CustomCategory[] = [
 ];
 const sampleSources: Source[] = [
   {
-    id: "sample-source-1",
+    id: "sample-source-mixed-note",
     type: "note",
-    title: "示例备忘录",
+    title: "混合备忘录｜周末集中整理",
     rawText:
-      "关注岗位职责、城市、截止时间和申请入口，保存后仍然能够回到原始来源。",
+      "1. 求职：收藏了一个上海的产品实习岗位，要求会做用户研究和数据分析，8 月 25 日前从官网投递。\n\n2. 学习：整理 DeepSeek 结构化输出的用法，重点是让模型只返回约定字段，不额外写长篇分析。\n\n3. 工具：试用 Tesseract OCR 和 HEIC 转换工具，后面用来识别手机截图里的文字。\n\n4. 项目灵感：给 Signal 增加手机分享入口，把小红书、抖音和网页收藏直接送进待整理区。",
     createdAt: "2026-08-16T12:00:00.000Z",
-  },
-  {
-    id: "sample-source-2",
-    type: "note",
-    title: "示例收藏",
-    rawText: "整理信息时保留完整上下文，只清理重复口头语，不额外生成大段分析。",
-    createdAt: "2026-08-16T12:05:00.000Z",
-  },
-  {
-    id: "sample-source-3",
-    type: "note",
-    title: "示例项目记录",
-    rawText: "Signal 第一轮只验证上传、识别、整理、分类、溯源这一条核心链路。",
-    createdAt: "2026-08-16T12:10:00.000Z",
   },
 ];
 const sampleItems: Item[] = [
   {
-    id: "sample-item-1",
-    sourceId: "sample-source-1",
+    id: "sample-item-job",
+    sourceId: "sample-source-mixed-note",
     category: "job",
     customCategory: "career-product",
-    title: "产品实习岗位记录",
-    content: "记录岗位职责、城市、截止时间和申请入口，并保留原始来源方便复查。",
-    sourceQuote: sampleSources[0].rawText,
+    title: "上海产品实习岗位",
+    content:
+      "上海产品实习，要求用户研究和数据分析能力；8 月 25 日前通过官网投递。",
+    sourceQuote:
+      "收藏了一个上海的产品实习岗位，要求会做用户研究和数据分析，8 月 25 日前从官网投递。",
     createdAt: sampleSources[0].createdAt,
   },
   {
-    id: "sample-item-2",
-    sourceId: "sample-source-2",
+    id: "sample-item-learning",
+    sourceId: "sample-source-mixed-note",
     category: "knowledge",
     customCategory: "learning-ai",
-    title: "信息整理原则",
-    content: "保留完整上下文，只清理重复内容，不额外生成冗长分析。",
-    sourceQuote: sampleSources[1].rawText,
-    createdAt: sampleSources[1].createdAt,
+    title: "DeepSeek 结构化输出方法",
+    content: "让模型只返回约定字段，不额外生成长篇分析。",
+    sourceQuote:
+      "整理 DeepSeek 结构化输出的用法，重点是让模型只返回约定字段，不额外写长篇分析。",
+    createdAt: sampleSources[0].createdAt,
   },
   {
-    id: "sample-item-3",
-    sourceId: "sample-source-3",
+    id: "sample-item-resource",
+    sourceId: "sample-source-mixed-note",
+    category: "resource",
+    customCategory: "resources-software",
+    title: "截图识别工具组合",
+    content: "Tesseract OCR + HEIC 转换，用于识别手机截图中的文字。",
+    sourceQuote:
+      "试用 Tesseract OCR 和 HEIC 转换工具，后面用来识别手机截图里的文字。",
+    createdAt: sampleSources[0].createdAt,
+  },
+  {
+    id: "sample-item-idea",
+    sourceId: "sample-source-mixed-note",
     category: "project",
     customCategory: "ideas-project",
-    title: "Signal 第一轮 MVP",
-    content: "验证上传、识别、整理、分类和溯源这一条核心链路。",
-    sourceQuote: sampleSources[2].rawText,
-    createdAt: sampleSources[2].createdAt,
+    title: "Signal 手机分享入口",
+    content: "把小红书、抖音和网页收藏直接送进 Signal 的待整理区。",
+    sourceQuote:
+      "给 Signal 增加手机分享入口，把小红书、抖音和网页收藏直接送进待整理区。",
+    createdAt: sampleSources[0].createdAt,
   },
 ];
 
@@ -269,12 +270,7 @@ export default function SignalWorkspace() {
     [selectedId, setSelectedId] = useState(""),
     [rightOpen, setRightOpen] = useState(false),
     [query, setQuery] = useState("");
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
-      career: true,
-      learning: true,
-      resources: true,
-      ideas: true,
-    }),
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({}),
     [importOpen, setImportOpen] = useState(false),
     [importMode, setImportMode] = useState<SourceType>("note"),
     [importTitle, setImportTitle] = useState(""),
@@ -306,6 +302,35 @@ export default function SignalWorkspace() {
           JSON.stringify(sampleCategories),
         );
         localStorage.setItem(resetKey, "done");
+      }
+      const demoKey = "signal-mixed-note-demo-20260817";
+      if (!localStorage.getItem(demoKey)) {
+        const existingItems = JSON.parse(
+          localStorage.getItem("signal-items") || "[]",
+        );
+        const existingSources = JSON.parse(
+          localStorage.getItem("signal-sources") || "[]",
+        );
+        localStorage.setItem(
+          "signal-items",
+          JSON.stringify([
+            ...sampleItems,
+            ...existingItems.filter(
+              (item: Item) => !String(item.id).startsWith("sample-item-"),
+            ),
+          ]),
+        );
+        localStorage.setItem(
+          "signal-sources",
+          JSON.stringify([
+            ...sampleSources,
+            ...existingSources.filter(
+              (source: Source) =>
+                !String(source.id).startsWith("sample-source-"),
+            ),
+          ]),
+        );
+        localStorage.setItem(demoKey, "done");
       }
       setItems(JSON.parse(localStorage.getItem("signal-items") || "[]"));
       setSources(JSON.parse(localStorage.getItem("signal-sources") || "[]"));
@@ -686,28 +711,25 @@ export default function SignalWorkspace() {
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => dropIntoCategory(event, node.id)}
           >
-            <button
-              className="tree-toggle"
-              type="button"
-              onClick={() =>
-                hasChildren &&
-                setCollapsed((current) => ({
-                  ...current,
-                  [node.id]: !current[node.id],
-                }))
-              }
-              aria-label={isCollapsed ? "展开分类" : "收起分类"}
-            >
-              {hasChildren ? (
-                isCollapsed ? (
-                  <ChevronRight />
-                ) : (
-                  <ChevronDown />
-                )
-              ) : (
-                <span />
-              )}
-            </button>
+            {hasChildren ? (
+              <button
+                className="tree-toggle"
+                type="button"
+                onClick={() =>
+                  setCollapsed((current) => ({
+                    ...current,
+                    [node.id]: !current[node.id],
+                  }))
+                }
+                aria-label={
+                  isCollapsed ? `展开${node.label}` : `收起${node.label}`
+                }
+              >
+                {isCollapsed ? <ChevronRight /> : <ChevronDown />}
+              </button>
+            ) : (
+              <span className="tree-toggle-spacer" aria-hidden="true" />
+            )}
             {editingCategoryId === node.id ? (
               <input
                 className="tree-rename"
@@ -737,6 +759,7 @@ export default function SignalWorkspace() {
                   setView("all");
                 }}
               >
+                <FileText aria-hidden="true" />
                 <span>{node.label || "未命名"}</span>
               </button>
             )}
@@ -1058,9 +1081,9 @@ export default function SignalWorkspace() {
                       <p>{item.content || "暂无整理内容"}</p>
                       <small>
                         {item.customCategory
-                          ? custom.find(
-                              (node) => node.id === item.customCategory,
-                            )?.label
+                          ? categoryPath(item.customCategory)
+                              .map((part) => part.label)
+                              .join(" / ")
                           : "待分类"}{" "}
                         · {source?.title || "手动记录"}
                       </small>

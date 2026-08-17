@@ -24,6 +24,7 @@
 }
 .wk button {
   border: 0;
+  padding: 0;
   background: transparent;
   cursor: pointer;
 }
@@ -136,7 +137,7 @@
   justify-content: space-between;
   padding: 0 8px;
   color: #5f6368;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 650;
 }
 .category-tree > header button {
@@ -150,14 +151,15 @@
   background: var(--hover);
 }
 .tree-row {
-  height: 30px;
+  min-width: 0;
+  height: 32px;
   display: flex;
   align-items: center;
   border-radius: 5px;
   color: #37352f;
 }
 .category-tree > div > .tree-row {
-  margin-top: 3px;
+  margin-top: 4px;
   font-weight: 600;
 }
 .tree-row:hover,
@@ -166,11 +168,17 @@
   color: #202124;
 }
 .tree-toggle {
-  width: 18px;
-  height: 28px;
+  width: 20px;
+  height: 30px;
+  flex: 0 0 20px;
   display: grid;
   place-items: center;
   padding: 0;
+}
+.tree-toggle-spacer {
+  width: 20px;
+  height: 30px;
+  flex: 0 0 20px;
 }
 .tree-toggle svg {
   width: 11px;
@@ -182,10 +190,10 @@
 .tree-main {
   min-width: 0;
   flex: 1;
-  height: 28px;
+  height: 30px;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   padding: 0;
   text-align: left;
 }
@@ -195,6 +203,9 @@
   opacity: 0.75;
 }
 .tree-main span {
+  display: block;
+  min-width: 0;
+  flex: 1;
   overflow: hidden;
   color: #37352f;
   text-overflow: ellipsis;
@@ -205,7 +216,8 @@
 }
 .tree-add {
   width: 22px;
-  height: 26px;
+  height: 28px;
+  flex: 0 0 22px;
   display: grid;
   place-items: center;
   opacity: 0;
