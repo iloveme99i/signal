@@ -39,6 +39,9 @@ test("Signal provides a user-created nested classification tree and working item
   assert.match(workspace, /page-block/);
   assert.match(workspace, /addCategory/);
   assert.match(workspace, /finishCategoryEdit/);
+  assert.match(workspace, /tree-rename/);
+  assert.match(workspace, /patchSource/);
+  assert.match(workspace, /source-title-input/);
   assert.match(workspace, /deleteCategory/);
   assert.match(workspace, /dropIntoCategory/);
   assert.match(workspace, /彻底删除/);
