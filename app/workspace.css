@@ -130,13 +130,14 @@
   padding-bottom: 12px;
 }
 .category-tree > header {
-  height: 30px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 8px;
-  color: var(--faint);
+  color: #5f6368;
   font-size: 11px;
+  font-weight: 650;
 }
 .category-tree > header button {
   width: 24px;
@@ -149,11 +150,15 @@
   background: var(--hover);
 }
 .tree-row {
-  height: 29px;
+  height: 30px;
   display: flex;
   align-items: center;
   border-radius: 5px;
-  color: var(--muted);
+  color: #37352f;
+}
+.category-tree > div > .tree-row {
+  margin-top: 3px;
+  font-weight: 600;
 }
 .tree-row:hover,
 .tree-row.active {
@@ -191,6 +196,7 @@
 }
 .tree-main span {
   overflow: hidden;
+  color: #37352f;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

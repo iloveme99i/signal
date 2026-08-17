@@ -260,9 +260,9 @@ async function compressImage(file: File) {
 }
 
 export default function SignalWorkspace() {
-  const [items, setItems] = useState<Item[]>([]),
-    [sources, setSources] = useState<Source[]>([]),
-    [custom, setCustom] = useState<CustomCategory[]>([]);
+  const [items, setItems] = useState<Item[]>(sampleItems),
+    [sources, setSources] = useState<Source[]>(sampleSources),
+    [custom, setCustom] = useState<CustomCategory[]>(sampleCategories);
   const [hydrated, setHydrated] = useState(false),
     [view, setView] = useState<View>("all"),
     [selectedCategory, setSelectedCategory] = useState("all"),
@@ -290,8 +290,15 @@ export default function SignalWorkspace() {
 
   useEffect(() => {
     try {
-    const resetKey = "signal-notion-page-tree-20260817";
-      if (!localStorage.getItem(resetKey)) {
+      const resetKey = "signal-curated-taxonomy-20260817";
+      const storedCategories = JSON.parse(
+        localStorage.getItem("signal-categories") || "[]",
+      );
+      if (
+        !localStorage.getItem(resetKey) ||
+        !Array.isArray(storedCategories) ||
+        storedCategories.length === 0
+      ) {
         localStorage.setItem("signal-items", JSON.stringify(sampleItems));
         localStorage.setItem("signal-sources", JSON.stringify(sampleSources));
         localStorage.setItem(
@@ -730,7 +737,6 @@ export default function SignalWorkspace() {
                   setView("all");
                 }}
               >
-                <FileText />
                 <span>{node.label || "未命名"}</span>
               </button>
             )}
