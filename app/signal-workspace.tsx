@@ -695,24 +695,64 @@ export default function SignalWorkspace() {
     const apiKey = localStorage.getItem("signal-deepseek-key") || "";
     if (!apiKey)
       throw new Error("DeepSeek Key 不在当前浏览器中，请重新连接后再试。");
-    const response = await fetch("/api/analyze", {
+    const categories = custom.map((node) => ({
+      id: node.id,
+      label: categoryPath(node.id)
+        .map((part) => part.label)
+        .join(" / "),
+    }));
+    const isGitHubPages = window.location.hostname.endsWith(".github.io");
+    const response = await fetch(
+      isGitHubPages
+        ? "https://api.deepseek.com/chat/completions"
+        : "/api/analyze",
+      {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        apiKey,
-        title,
-        content,
-        categories: custom.map((node) => ({
-          id: node.id,
-          label: categoryPath(node.id)
-            .map((part) => part.label)
-            .join(" / "),
-        })),
-      }),
-    });
+      headers: isGitHubPages
+        ? {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          }
+        : { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        isGitHubPages
+          ? {
+              model: "deepseek-chat",
+              temperature: 0.2,
+              response_format: { type: "json_object" },
+              messages: [
+                {
+                  role: "system",
+                  content: `你是 Signal 的信息整理引擎。你的工作只有：理解原材料、轻度整理原文、匹配分类。
+
+规则：
+1. 默认把一份材料整理成一条保持上下文完整的记录。时间、待办、人物、链接只是这条记录里的信息，不能因此被拆成多条。
+2. 只有原材料中存在两个完全无关、分别保存才更容易查找的主题时，才输出多条。不要按句子、字段或关键词机械拆分。
+3. content 是整理后的完整正文，不是一句话摘要。可以调整语序、分段和标题，删除重复口头语、广告与无信息内容，但不能改写观点、编造信息或添加建议。
+4. 不输出分析过程、行动建议、价值判断、总结套话或材料中不存在的内容。
+5. category 只能从给定分类 ID 中选择最匹配的一项。分类名称以“大类 / 子页面 / 更深子页面”的完整路径提供；只要内容与某个更具体的下层页面匹配，就优先选择最深、最具体的分类，不要停在宽泛的大类。
+
+只输出 JSON：{"items":[{"category":"分类ID","title":"清楚且便于搜索的标题","content":"保持原意和上下文的完整整理正文","sourceQuote":"该记录对应的原始材料片段"}]}。默认只输出一个 item。`,
+                },
+                {
+                  role: "user",
+                  content: `可用分类：${JSON.stringify(categories)}\n\n标题：${title || "无标题"}\n\n原始材料：\n${content}`,
+                },
+              ],
+            }
+          : { apiKey, title, content, categories },
+      ),
+      },
+    );
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || "DeepSeek 整理失败");
-    const drafts = Array.isArray(payload.items) ? payload.items : [];
+    if (!response.ok)
+      throw new Error(
+        payload.error?.message || payload.error || "DeepSeek 整理失败",
+      );
+    const analyzed = isGitHubPages
+      ? JSON.parse(payload.choices?.[0]?.message?.content || "{}")
+      : payload;
+    const drafts = Array.isArray(analyzed.items) ? analyzed.items : [];
     if (!drafts.length) throw new Error("没有识别出可保存的内容");
     return drafts.map((draft: Partial<Draft> & { category?: string }) => ({
       title: String(draft.title || title || "未命名内容"),

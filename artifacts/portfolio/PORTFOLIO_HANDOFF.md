@@ -189,18 +189,11 @@ npm run dev -- --port 3001
 
 注意：以上均为本机地址，不能作为公开演示链接。
 
-## 11. 公开演示地址与部署阻塞
+## 11. 公开演示地址
 
-**公开演示版待部署。**
+GitHub Pages 在线体验：`https://iloveme99i.github.io/signal/`
 
-项目中存在 `.openai/hosting.json`，但当前通过 Sites 检查其中配置的项目时返回 “Sites project not found”，因此没有可验证、可安全提供的公开演示 URL。此次工作未擅自新建、更新或发布站点，也没有把 `localhost` 冒充成公开地址。
-
-在正式部署前还需要单独确认：
-
-1. 新的 Sites 项目或其他托管目标；
-2. 无登录公开访问时的 DeepSeek 调用成本、滥用限制和 Key 托管方式；
-3. 公开版本是否继续使用浏览器本地数据，以及隐私说明如何呈现；
-4. 演示环境只包含非隐私数据。
+公开版无需登录，内容、分类、图片和 API Key 仍保存在每位访问者自己的浏览器。GitHub Pages 不提供服务端接口，因此公开版进行 AI 整理时会从访问者浏览器直接请求 DeepSeek；API Key 不进入 GitHub 仓库或 Signal 自建服务端。
 
 ## 12. Git 状态
 

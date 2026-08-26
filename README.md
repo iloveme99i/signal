@@ -2,6 +2,8 @@
 
 一个本地优先的个人信息识别与分类工具。Signal 把散落在截图、收藏文字和混合备忘录里的内容轻度整理后放入用户自己的分类体系，并保留原始来源，方便日后查找和核对。
 
+**[在线体验：iloveme99i.github.io/signal](https://iloveme99i.github.io/signal/)**
+
 ![Signal 信息库总览](artifacts/portfolio/screenshots/01-library-overview.png)
 
 ## 为什么做 Signal
