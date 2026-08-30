@@ -708,6 +708,52 @@ export default function SignalWorkspace() {
     setToast("DeepSeek 已连接到当前浏览器");
   };
 
+  const organizeLocally = (title: string, content: string): Draft[] => {
+    const material = `${title}\n${content}`.toLowerCase();
+    const keywordGroups: Array<[RegExp, string[]]> = [
+      [/实习|岗位|招聘|求职|面试|简历|投递|boss|牛客/i, ["求职", "岗位", "面试", "简历"]],
+      [/学习|课程|教程|知识|方法|论文|读书|ai|开发/i, ["学习", "教程", "知识", "AI", "开发"]],
+      [/工具|软件|网站|资源|链接|模板|插件/i, ["工具", "资源", "软件", "网站", "模板"]],
+      [/灵感|想法|创意|项目|记录|备忘/i, ["灵感", "想法", "项目", "记录"]],
+    ];
+    const scored = custom.map((node) => {
+      const path = categoryPath(node.id);
+      let score = material.includes(node.label.toLowerCase()) ? 20 : 0;
+      for (const [pattern, labels] of keywordGroups) {
+        if (
+          pattern.test(material) &&
+          labels.some((label) =>
+            path.some((part) => part.label.toLowerCase().includes(label.toLowerCase())),
+          )
+        )
+          score += 8;
+      }
+      score += path
+        .flatMap((part) => part.blocks || [])
+        .filter((block) =>
+          block.text
+            .split(/[，。；、\s]/)
+            .filter((word) => word.length >= 2)
+            .some((word) => material.includes(word.toLowerCase())),
+        ).length;
+      if (score > 0) score += path.length * 0.1;
+      return { id: node.id, score };
+    });
+    const best = scored.sort((a, b) => b.score - a.score)[0];
+    const firstLine = content
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .find(Boolean);
+    return [
+      {
+        title: title.trim() || firstLine?.slice(0, 42) || "未命名内容",
+        content: content.trim(),
+        categoryId: best?.score > 0 ? best.id : "",
+        sourceQuote: content.trim(),
+      },
+    ];
+  };
+
   const analyzeText = async (
     title: string,
     content: string,
@@ -721,21 +767,29 @@ export default function SignalWorkspace() {
         .map((part) => part.label)
         .join(" / "),
     }));
-    const response = await fetch(
-      hostedAI
-        ? hostedAnalyzeEndpoint
-        : "/api/analyze",
-      {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...(hostedAI ? {} : { apiKey }),
-        title,
-        content,
-        categories,
-      }),
-      },
-    );
+    let response: Response;
+    try {
+      response = await fetch(hostedAI ? hostedAnalyzeEndpoint : "/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(hostedAI ? {} : { apiKey }),
+          title,
+          content,
+          categories,
+        }),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (
+        hostedAI &&
+        /load failed|failed to fetch|network|internet|offline/i.test(message)
+      ) {
+        setToast("AI 服务当前不可达，已使用本地整理并保留原文");
+        return organizeLocally(title, content);
+      }
+      throw error;
+    }
     const payload = await response.json().catch(() => ({}));
     if (!response.ok)
       throw new Error(
