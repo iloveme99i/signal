@@ -13,6 +13,10 @@ test("Signal first-round MVP keeps the complete capture and source flow", async 
 
   assert.match(workspace, /粘贴备忘录/);
   assert.match(workspace, /上传截图/);
+  assert.match(workspace, /cleanScreenshotText/);
+  assert.match(workspace, /点赞\|赞\|收藏\|已收藏\|评论\|转发/);
+  assert.match(workspace, /小红书号\|抖音号\|微信号/);
+  assert.match(workspace, /looksLikeShortNickname/);
   assert.match(workspace, /整理并分类/);
   assert.match(workspace, /数据来源/);
   assert.match(workspace, /signal-deepseek-key/);

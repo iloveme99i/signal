@@ -350,6 +350,48 @@ function readFileAsDataUrl(file: Blob) {
     reader.readAsDataURL(file);
   });
 }
+
+function cleanScreenshotText(input: string) {
+  const lines = input
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => line.replace(/[|丨¦]{2,}/g, " ").trim())
+    .filter(Boolean);
+  const isMetadata = (line: string) =>
+    /^(?:ip\s*属地|发布于|编辑于|来自|刚刚|昨天|今天|\d+\s*(?:秒|分钟|小时|天)前|\d{1,4}[年./-]\d{1,2}(?:[月./-]\d{1,2}日?)?)/i.test(
+      line,
+    );
+  const isInterfaceText = (line: string) =>
+    /^(?:点赞|赞|收藏|已收藏|评论|转发|分享|回复|关注|已关注|私信|举报|更多|展开|收起|查看原文|查看全部|写评论|说点什么|码住|蹲|mark|copy|复制链接|不感兴趣)(?:\s*[·:：]?\s*\d+(?:\.\d+)?[万wk]?)?$/i.test(
+      line,
+    ) ||
+    /^(?:点赞|赞|收藏|评论|转发|分享)\s*\d+(?:\.\d+)?[万wk]?(?:\s+(?:点赞|赞|收藏|评论|转发|分享)\s*\d+(?:\.\d+)?[万wk]?)*$/i.test(
+      line,
+    ) ||
+    /^(?:共\s*)?\d+\s*条(?:评论|回复)$/.test(line);
+
+  return lines
+    .filter((line, index) => {
+      if (!/[\p{L}\p{N}]/u.test(line)) return false;
+      if (/^@[\p{L}\p{N}_.-]{1,40}$/u.test(line)) return false;
+      if (/^(?:小红书号|抖音号|微信号|用户\s*id|uid)\s*[:：]/i.test(line))
+        return false;
+      if (/^\d{1,2}:\d{2}.*(?:4g|5g|lte|wi-?fi|\d+%)/i.test(line))
+        return false;
+      if (isMetadata(line) || isInterfaceText(line)) return false;
+      const nextLine = lines[index + 1] || "";
+      const looksLikeShortNickname =
+        line.length <= 24 &&
+        !/[。！？!?；;，,：:]$/.test(line) &&
+        isMetadata(nextLine);
+      return !looksLikeShortNickname;
+    })
+    .map((line) => line.replace(/^[•·▪︎■□◆◇▶▷►›>—–-]+\s*/, ""))
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+}
+
 async function normalizeImage(file: File): Promise<File> {
   return file;
 }
@@ -875,7 +917,7 @@ export default function SignalWorkspace() {
           );
           const normalized = await compressImage(original);
           const ocr = await worker.recognize(normalized.ocrBlob);
-          const rawText = ocr.data.text.trim();
+          const rawText = cleanScreenshotText(ocr.data.text);
           const source: Source = {
             id: uid(),
             type: "image",
@@ -885,7 +927,7 @@ export default function SignalWorkspace() {
             createdAt: new Date().toISOString(),
           };
           setProgress(
-            `正在整理第 ${index + 1} / ${files.length} 张并匹配分类…`,
+            `正在过滤网名、图标和互动信息，并整理第 ${index + 1} / ${files.length} 张…`,
           );
           const drafts = rawText
             ? await analyzeText(original.name, rawText)
