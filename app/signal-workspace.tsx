@@ -43,7 +43,6 @@ import {
   useRef,
   useState,
 } from "react";
-import heic2any from "heic2any";
 import { createWorker } from "tesseract.js";
 
 type Cat =
@@ -352,17 +351,7 @@ function readFileAsDataUrl(file: Blob) {
   });
 }
 async function normalizeImage(file: File): Promise<File> {
-  if (!/\.hei[cf]$/i.test(file.name) && !/heic|heif/i.test(file.type))
-    return file;
-  const converted = await heic2any({
-    blob: file,
-    toType: "image/jpeg",
-    quality: 0.86,
-  });
-  const blob = Array.isArray(converted) ? converted[0] : converted;
-  return new File([blob], file.name.replace(/\.hei[cf]$/i, ".jpg"), {
-    type: "image/jpeg",
-  });
+  return file;
 }
 async function compressImage(file: File) {
   const normalized = await normalizeImage(file);
