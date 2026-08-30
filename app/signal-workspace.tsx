@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   Lightbulb,
   LoaderCircle,
+  Menu,
   MoreHorizontal,
   MoveRight,
   NotebookPen,
@@ -432,6 +433,10 @@ export default function SignalWorkspace() {
     [processing, setProcessing] = useState(false),
     [progress, setProgress] = useState(""),
     [importError, setImportError] = useState("");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false),
+    [hasDeepSeekKey, setHasDeepSeekKey] = useState(false),
+    [deepSeekKeyInput, setDeepSeekKeyInput] = useState(""),
+    [changingDeepSeekKey, setChangingDeepSeekKey] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState(""),
     [categoryName, setCategoryName] = useState(""),
     [newCategoryFocusId, setNewCategoryFocusId] = useState("");
@@ -541,6 +546,9 @@ export default function SignalWorkspace() {
       setSortMode(
         (localStorage.getItem("signal-sort-mode") as SortMode) || "manual",
       );
+      setHasDeepSeekKey(
+        Boolean(localStorage.getItem("signal-deepseek-key")?.trim()),
+      );
     } catch {
       setImportError("浏览器中的数据读取失败，但不会影响已保存的 API Key。");
     } finally {
@@ -577,6 +585,9 @@ export default function SignalWorkspace() {
       ].slice(0, 3),
     );
   }, [selectedCategory]);
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [view, selectedCategory]);
   useEffect(() => {
     if (!categoryMenu) return;
     const close = () => setCategoryMenu(null);
@@ -687,6 +698,19 @@ export default function SignalWorkspace() {
     setImportOpen(false);
     resetImporter();
   };
+  const saveDeepSeekKey = () => {
+    const key = deepSeekKeyInput.trim();
+    if (!key) {
+      setImportError("请输入 DeepSeek API Key。");
+      return;
+    }
+    localStorage.setItem("signal-deepseek-key", key);
+    setDeepSeekKeyInput("");
+    setHasDeepSeekKey(true);
+    setChangingDeepSeekKey(false);
+    setImportError("");
+    setToast("DeepSeek 已连接到当前浏览器");
+  };
 
   const analyzeText = async (
     title: string,
@@ -764,6 +788,10 @@ export default function SignalWorkspace() {
     }));
   };
   const organizeNote = async () => {
+    if (!hasDeepSeekKey) {
+      setImportError("请先在下方连接 DeepSeek，再整理内容。");
+      return;
+    }
     if (!importText.trim()) {
       setImportError("先粘贴或输入一段内容。");
       return;
@@ -792,6 +820,10 @@ export default function SignalWorkspace() {
     const files = Array.from(event.target.files || []);
     event.target.value = "";
     if (!files.length) return;
+    if (!hasDeepSeekKey) {
+      setImportError("请先连接 DeepSeek，再选择截图。");
+      return;
+    }
     setProcessing(true);
     setImportError("");
     setImportBatches([]);
@@ -1303,7 +1335,7 @@ export default function SignalWorkspace() {
 
   return (
     <main className="wk">
-      <aside className="wk-side">
+      <aside className={`wk-side ${mobileNavOpen ? "mobile-open" : ""}`}>
         <header
           role="button"
           tabIndex={0}
@@ -1495,11 +1527,29 @@ export default function SignalWorkspace() {
           </button>
         </footer>
       </aside>
+      {mobileNavOpen ? (
+        <button
+          className="mobile-nav-backdrop"
+          type="button"
+          onClick={() => setMobileNavOpen(false)}
+          aria-label="关闭导航"
+        />
+      ) : null}
       <section className="wk-list">
         <header>
-          <div>
-            <small>Signal / 信息库</small>
-            <h1>{viewTitle[view]}</h1>
+          <div className="list-heading">
+            <button
+              className="mobile-nav-trigger"
+              type="button"
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="打开导航"
+            >
+              <Menu />
+            </button>
+            <div>
+              <small>Signal / 信息库</small>
+              <h1>{viewTitle[view]}</h1>
+            </div>
           </div>
           <div className="list-actions">
             {view === "all" && selectedCategory === "all" ? (
@@ -2437,6 +2487,44 @@ export default function SignalWorkspace() {
                 上传截图
               </button>
             </div>
+            {!hasDeepSeekKey || changingDeepSeekKey ? (
+              <div className="deepseek-connect">
+                <div>
+                  <strong>连接 DeepSeek</strong>
+                  <span>Key 只保存在当前浏览器，不会写入 GitHub。</span>
+                </div>
+                <label>
+                  <input
+                    type="password"
+                    value={deepSeekKeyInput}
+                    onChange={(event) =>
+                      setDeepSeekKeyInput(event.target.value)
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") saveDeepSeekKey();
+                    }}
+                    placeholder="输入 DeepSeek API Key"
+                    autoComplete="off"
+                    aria-label="DeepSeek API Key"
+                  />
+                  <button type="button" onClick={saveDeepSeekKey}>
+                    保存并连接
+                  </button>
+                </label>
+              </div>
+            ) : (
+              <div className="deepseek-status">
+                <span>
+                  <Check /> DeepSeek 已连接
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setChangingDeepSeekKey(true)}
+                >
+                  更换 Key
+                </button>
+              </div>
+            )}
             {!importBatches.length ? (
               importMode === "note" ? (
                 <div className="note-import">
@@ -2467,8 +2555,15 @@ export default function SignalWorkspace() {
                 </div>
               ) : (
                 <div
-                  className="image-drop"
-                  onClick={() => !processing && fileInput.current?.click()}
+                  className={`image-drop ${!hasDeepSeekKey ? "disabled" : ""}`}
+                  onClick={() => {
+                    if (processing) return;
+                    if (!hasDeepSeekKey) {
+                      setImportError("请先连接 DeepSeek，再选择截图。");
+                      return;
+                    }
+                    fileInput.current?.click();
+                  }}
                 >
                   <input
                     ref={fileInput}
