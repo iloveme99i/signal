@@ -43,6 +43,8 @@ import {
   useRef,
   useState,
 } from "react";
+import heic2any from "heic2any";
+import { createWorker } from "tesseract.js";
 
 type Cat =
   | "deadline"
@@ -352,8 +354,7 @@ function readFileAsDataUrl(file: Blob) {
 async function normalizeImage(file: File): Promise<File> {
   if (!/\.hei[cf]$/i.test(file.name) && !/heic|heif/i.test(file.type))
     return file;
-  const module = await import("heic2any");
-  const converted = await module.default({
+  const converted = await heic2any({
     blob: file,
     toType: "image/jpeg",
     quality: 0.86,
@@ -805,10 +806,16 @@ export default function SignalWorkspace() {
     setImportBatches([]);
     const batches: ImportBatch[] = [];
     try {
-      const { createWorker } = await import("tesseract.js");
+      const ocrBase = window.location.hostname.endsWith(".github.io")
+        ? "/signal/ocr"
+        : "/ocr";
       let currentIndex = 0;
-      setProgress("正在载入截图识别引擎，后续图片会复用…");
+      setProgress("正在从 Signal 载入手机识别组件…");
       const worker = await createWorker("chi_sim+eng", undefined, {
+        workerPath: `${ocrBase}/worker.min.js`,
+        corePath: `${ocrBase}/core`,
+        langPath: `${ocrBase}/lang`,
+        workerBlobURL: false,
         logger: (message) => {
           if (message.status === "recognizing text")
             setProgress(
@@ -855,7 +862,12 @@ export default function SignalWorkspace() {
       }
       setProgress("识别完成，请确认内容和分类");
     } catch (error) {
-      setImportError(error instanceof Error ? error.message : "图片识别失败");
+      const message = error instanceof Error ? error.message : "";
+      setImportError(
+        /module script|importing|worker|network|fetch/i.test(message)
+          ? "手机识别组件加载失败。请刷新页面后重试；Signal 已不再依赖外部 OCR 网站。"
+          : message || "图片识别失败，请确认图片格式后重试。",
+      );
     } finally {
       setProcessing(false);
     }
