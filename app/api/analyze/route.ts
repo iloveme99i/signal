@@ -5,21 +5,81 @@ type AnalyzeRequest = {
   categories?: Array<{ id: string; label: string }>;
 };
 
+const allowedOrigins = new Set([
+  "https://iloveme99i.github.io",
+  "https://signal-inbox.oliverruby788.chatgpt.site",
+  "http://localhost:3001",
+  "http://127.0.0.1:3001",
+]);
+const requestWindows = new Map<string, { count: number; resetAt: number }>();
+
+function corsHeaders(request: Request) {
+  const origin = request.headers.get("origin") || "";
+  return allowedOrigins.has(origin)
+    ? {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        Vary: "Origin",
+      }
+    : {};
+}
+
+function isAllowedOrigin(request: Request) {
+  const origin = request.headers.get("origin");
+  return !origin || allowedOrigins.has(origin);
+}
+
+function rateLimited(request: Request) {
+  const now = Date.now();
+  const client =
+    request.headers.get("cf-connecting-ip") ||
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown";
+  const current = requestWindows.get(client);
+  if (!current || now >= current.resetAt) {
+    requestWindows.set(client, { count: 1, resetAt: now + 10 * 60 * 1000 });
+    return false;
+  }
+  current.count += 1;
+  return current.count > 12;
+}
+
+export async function OPTIONS(request: Request) {
+  if (!isAllowedOrigin(request))
+    return new Response(null, { status: 403 });
+  return new Response(null, { status: 204, headers: corsHeaders(request) });
+}
+
 export async function POST(request: Request) {
+  const headers = corsHeaders(request);
   try {
+    if (!isAllowedOrigin(request))
+      return Response.json(
+        { error: "当前来源不允许调用 Signal AI" },
+        { status: 403, headers },
+      );
+    if (rateLimited(request))
+      return Response.json(
+        { error: "请求过于频繁，请稍后再试" },
+        { status: 429, headers },
+      );
     const body = (await request.json()) as AnalyzeRequest;
-    const apiKey = body.apiKey?.trim() || process.env.DEEPSEEK_API_KEY;
+    const apiKey = process.env.DEEPSEEK_API_KEY || body.apiKey?.trim();
     if (!apiKey)
       return Response.json(
-        { error: "当前浏览器中没有可用的 DeepSeek Key" },
-        { status: 503 },
+        { error: "Signal AI 服务尚未完成密钥配置" },
+        { status: 503, headers },
       );
     if (!body.content?.trim())
-      return Response.json({ error: "备忘录内容为空" }, { status: 400 });
-    if (body.content.length > 30000)
       return Response.json(
-        { error: "首版单条笔记暂时限制在 30000 字以内" },
-        { status: 400 },
+        { error: "备忘录内容为空" },
+        { status: 400, headers },
+      );
+    if (body.content.length > 18000)
+      return Response.json(
+        { error: "单次整理暂时限制在 18000 字以内" },
+        { status: 400, headers },
       );
 
     const upstream = await fetch("https://api.deepseek.com/chat/completions", {
@@ -60,13 +120,13 @@ export async function POST(request: Request) {
     if (!upstream.ok)
       return Response.json(
         { error: result.error?.message || "DeepSeek 接口请求失败" },
-        { status: upstream.status },
+        { status: upstream.status, headers },
       );
     const content = result.choices?.[0]?.message?.content;
     if (!content)
       return Response.json(
         { error: "DeepSeek 没有返回分析结果" },
-        { status: 502 },
+        { status: 502, headers },
       );
     const parsed = JSON.parse(content) as Analysis;
     const allowed = new Set(
@@ -94,11 +154,11 @@ export async function POST(request: Request) {
             sourceQuote: String(item.sourceQuote || "").slice(0, 2000),
           }))
       : [];
-    return Response.json({ items });
+    return Response.json({ items }, { headers });
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : "分析失败" },
-      { status: 500 },
+      { status: 500, headers },
     );
   }
 }
